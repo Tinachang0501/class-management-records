@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>六和高級中學國中部 - 班級經營紀錄本 (A4紙本精確樣式對齊版)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      [contenteditable="true"] {
+        border: none !important;
+        background: transparent !important;
+        outline: none !important;
+      }
+    }
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm 10mm;
+      background: white;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      box-sizing: border-box;
+      position: relative;
+      font-family: "PMingLiU", "MingLiU", "DFKai-SB", "BiauKai", serif;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1.5px solid #000;
+      padding: 3px 5px;
+      font-size: 11px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    th {
+      background-color: #ffffff;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .editable-cell {
+      transition: background-color 0.2s;
+    }
+    .editable-cell:hover {
+      background-color: #fef08a;
+      cursor: text;
+    }
+    .editable-cell:focus {
+      background-color: #ffffff;
+      outline: 2px solid #2563eb;
+      box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
+    }
+    @keyframes highlight-fade {
+      0% { background-color: #fef08a; }
+      100% { background-color: transparent; }
+    }
+    .row-newly-added {
+      animation: highlight-fade 3s ease-out;
+    }
+  </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased p-4">
+
+  <!-- Control Header (No Print) -->
+
+    <!-- Edit Record Modal (No Print) -->
+    <div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-blue-900 text-base">✏️ 編輯晤談紀錄 (需保留客觀對象與事件事實)</h3>
+          <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
+        </div>
+        <input type="hidden" id="edit-month-key">
+        <input type="hidden" id="edit-rec-idx">
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">📅 日期 (如: 2026-09-18)</label>
+            <input type="date" id="edit-date" class="w-full text-xs border rounded p-1.5 font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">⏰ 時間 (時:分)</label>
+            <input type="text" id="edit-time" class="w-full text-xs border rounded p-1.5 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">👤 學生座號</label>
+            <input type="text" id="edit-seat" oninput="onEditSeatInput(this.value)" class="w-full text-xs border rounded p-1.5 font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">學生姓名</label>
+            <input type="text" id="edit-name" readonly class="w-full text-xs border rounded p-1.5 bg-gray-100 font-bold text-blue-900">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">🎯 晤談對象與方式</label>
+            
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-gray-700">🎯 晤談對象與方式 (可複選)</label>
+            <div class="flex flex-wrap gap-2 text-xs border rounded p-1.5 bg-white">
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-stu" value="面談(學生)"> 面談(學生)</label>
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-parent" value="面談(家長)"> 面談(家長)</label>
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-phone" value="電聯家長"> 電聯家長</label>
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-home" value="家訪"> 家訪</label>
+            </div>
+            <input type="text" id="edit-target-other" placeholder="手動修改/其他說明(例:校內面談)..." class="w-full text-xs border rounded p-1 font-sans mt-1">
+          </div>
+
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">📌 晤談主題/類別</label>
+            <select id="edit-topic" class="w-full text-xs border rounded p-1.5 bg-white">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1 flex justify-between items-center">
+          <span>📝 晤談內容 (需保留客觀對象、客觀事件與處理對策)</span>
+          <button type="button" onclick="triggerPolishEditModal()" class="text-xs px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-semibold shadow">⚡ AI 潤飾</button>
+        </label>
+          <textarea id="edit-summary" rows="4" class="w-full text-xs border border-blue-300 rounded p-2 leading-relaxed focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+
+        <div class="flex justify-between items-center pt-2 border-t">
+          <button type="button" onclick="deleteRecordFromModal()" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded flex items-center gap-1">🗑️ 刪除此筆紀錄</button>
+          <div class="flex gap-2">
+          <button onclick="closeEditModal()" class="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded">取消</button>
+          <button onclick="saveEditRecord()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded">💾 儲存修改</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div class="no-print max-w-6xl mx-auto mb-6 bg-white rounded-xl shadow p-5 border border-gray-200">
+    <div class="flex flex-wrap justify-between items-center border-b pb-4 mb-4">
+      <div>
+        <h1 class="text-xl font-bold text-blue-900">班級經營紀錄本 - 紙本對齊樣式 (一頁最多9筆 A4)</h1>
+        <p class="text-xs text-gray-600 mt-1">學校：六和高級中學國中部 | 班級：九年五班 | 導師：張慧玲</p>
+        <div class="mt-2 text-xs font-semibold bg-amber-50 text-amber-900 p-2 rounded border border-amber-200">
+          <strong>對齊欄位樣式：</strong> 
+          【序號】 | 【學生姓名】 | 【時間】 | 【晤談方式暨聯絡摘要】 (含面談/電聯/家訪/主題與晤談內容)
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          一鍵列印 A4
+        </button>
+        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+          📊 匯出 Excel
+        </button>
+        <button onclick="exportToWord()" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v14a2 2 0 01-2 2z"></path></svg>
+          📝 匯出 Word
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Instructions Banner -->
+    <div class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-xs text-blue-900 flex justify-between items-center">
+      <div>
+        <strong>✏️ 紙本樣式對齊說明：</strong> 
+        本介面排版已100%精確對齊您提供的紙本圖樣！在快捷生成器輸入座號即可連續累積新增，每頁固定最多9筆 A4。
+      </div>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div id="add-feedback" class="hidden mb-4 bg-emerald-100 border-l-4 border-emerald-500 p-3 rounded text-xs font-bold text-emerald-900 transition flex justify-between items-center">
+      <span id="feedback-text"></span>
+      <span class="text-xs text-emerald-700 font-normal">（輸入框已自動清空，可直接繼續輸入下一個座號）</span>
+    </div>
+
+    <!-- Interactive Generator Form with Single & Batch Modes -->
+
+    <!-- Mode Switcher Tabs -->
+    <div class="flex border-b border-gray-300 mb-3 text-xs font-bold">
+      <button type="button" id="tab-btn-single" onclick="switchGenTab('single')" class="px-4 py-2 border-b-2 border-emerald-600 text-emerald-800 bg-emerald-50 rounded-t-lg">
+        ⚡ 單筆快捷輸入
+      </button>
+      <button type="button" id="tab-btn-batch" onclick="switchGenTab('batch')" class="px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-800 rounded-t-lg">
+        🚀 批次一次輸入 9 筆 (滿頁 A4 專用，自動連動座號與 30-50 字生成)
+      </button>
+    </div>
+
+    <!-- Batch 9 Generator Panel -->
+    <div id="gen-panel-batch" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-3">
+      <div class="flex flex-wrap justify-between items-center border-b border-blue-200 pb-2">
+        <div>
+          <h2 class="text-sm font-bold text-blue-900 flex items-center gap-1">
+            🚀 批次一次輸入 9 筆紀錄 (剛好滿頁 A4 直印，序號 1~9 自動累加)
+          </h2>
+          <p class="text-[11px] text-blue-700 mt-0.5">輸入座號自動連動姓名，填寫簡語一鍵自動生成約 30~50 字專業導師輔導紀錄！</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-blue-900">📅 統一日期：</label>
+          <input type="date" id="batch-date" value="2026-09-18" class="text-xs border border-blue-300 rounded p-1 bg-white font-bold font-mono">
+          <button type="button" onclick="fillBatchDemoData()" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-bold shadow">
+            🎲 帶入前 9 位學生測試範例
+          </button>
+        </div>
+      </div>
+
+      <!-- 9 Row Inputs Grid -->
+      <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#1</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-1" placeholder="座號(例:01)" oninput="onBatchSeatInput(1)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-1" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-1" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-1" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-1" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#2</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-2" placeholder="座號(例:02)" oninput="onBatchSeatInput(2)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-2" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-2" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-2" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-2" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#3</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-3" placeholder="座號(例:03)" oninput="onBatchSeatInput(3)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-3" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-3" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-3" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-3" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#4</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-4" placeholder="座號(例:04)" oninput="onBatchSeatInput(4)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-4" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-4" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-4" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-4" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#5</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-5" placeholder="座號(例:05)" oninput="onBatchSeatInput(5)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-5" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-5" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-5" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-5" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#6</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-6" placeholder="座號(例:06)" oninput="onBatchSeatInput(6)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-6" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-6" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-6" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-6" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#7</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-7" placeholder="座號(例:07)" oninput="onBatchSeatInput(7)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-7" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-7" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-7" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-7" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#8</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-8" placeholder="座號(例:08)" oninput="onBatchSeatInput(8)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-8" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-8" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-8" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-8" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#9</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-9" placeholder="座號(例:09)" oninput="onBatchSeatInput(9)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-9" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-9" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-9" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-9" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex justify-between items-center pt-2 border-t border-blue-200">
+        <span class="text-xs text-blue-800 font-semibold">點擊按鈕後，將一次新增 9 筆紀錄並自動生成 30~50 字內容，排版 100% 精確固定滿頁 A4。</span>
+        <button type="button" onclick="submitBatch9Records()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1">
+          🚀 一次新增 9 筆至紀錄本 (自動序號 1~9 累加滿頁)
+        </button>
+        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+          📊 匯出 Excel
+        </button>
+        <button onclick="exportToWord()" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v14a2 2 0 01-2 2z"></path></svg>
+          📝 匯出 Word
+        </button>
+
+      </div>
+    </div>
+
+    <div id="gen-panel-single" class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+      <h2 class="text-sm font-bold text-gray-800 flex items-center gap-1">
+        ⚡ 快捷紀錄生成器 (輸入座號連動時間、姓名，點擊新增自動累積)
+      </h2>
+
+      <!-- Row 1: Date, Seat, Name, Time, Topic, Target -->
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
+        <div>
+          <label class="block text-xs font-bold text-blue-900 mb-1">📅 1. 點選日期</label>
+          <input type="date" id="gen-date" value="2026-09-18" onchange="autoLookupStudent()" class="w-full text-xs border border-blue-300 rounded p-1.5 bg-white font-mono font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">2. 輸入座號</label>
+          <input type="text" id="gen-seat" placeholder="例如: 01" oninput="autoLookupStudent()" onkeyup="if(event.key==='Enter') addRecordFromGen()" class="w-full text-xs border rounded p-1.5 bg-white font-mono font-bold focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">學生姓名</label>
+          <input type="text" id="gen-name" readonly placeholder="自動連動" class="w-full text-xs border rounded p-1.5 bg-gray-100 font-bold text-blue-900">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">時間 (時:分)</label>
+          <input type="text" id="gen-time" value="10:10" class="w-full text-xs border rounded p-1.5 bg-white font-mono">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">晤談主題</label>
+          <select id="gen-topic" onchange="autoLookupStudent()" class="w-full text-xs border rounded p-1.5 bg-white">
+            <option value="常規問題">常規問題</option>
+            <option value="例行晤談">例行晤談</option>
+            <option value="人際關係">人際關係</option>
+            <option value="課業學習">課業學習</option>
+            <option value="學生請假">學生請假</option>
+            <option value="服裝儀容">服裝儀容</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">晤談方式/對象</label>
+          
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-gray-700">晤談方式(可複選)</label>
+            <div class="flex flex-wrap gap-1.5 text-[11px] bg-white border rounded p-1">
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-stu" value="面談(學生)" checked> 面談(學生)</label>
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-parent" value="面談(家長)"> 面談(家長)</label>
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-phone" value="電聯家長"> 電聯家長</label>
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-home" value="家訪"> 家訪</label>
+            </div>
+            <input type="text" id="gen-target-other" placeholder="手動修改/自訂方式" class="w-full text-[11px] border rounded p-1">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Row 2: Generated Brief Event Summary Edit Area -->
+      <div>
+        <label class="block text-xs font-bold text-emerald-800 mb-1 flex justify-between items-center">
+          <span>✏️ 貼入簡易事件筆記（可貼入簡語，點擊按鈕自動潤飾成約30字專業文句）</span>
+          <button type="button" onclick="triggerPolishCurrent()" class="text-xs px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-semibold shadow">
+            ⚡ AI 潤飾成專業文句 (約30字)
+          </button>
+        </label>
+        <textarea id="gen-summary" rows="2" class="w-full text-xs border border-emerald-300 rounded p-2 bg-white leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="可貼入簡易筆記（例如「杜柔均上生物課干擾秩序」），點新增將自動生成約30字專業客觀導師紀錄..."></textarea>
+      </div>
+
+      <div class="flex justify-between items-center">
+        <!-- Quick Month Jumper / Filter -->
+        <div class="flex items-center gap-1 text-xs">
+          <span class="font-bold text-gray-700">檢視月份切換：</span>
+          <select id="view-month-filter" onchange="filterMonthView()" class="border rounded p-1 text-xs bg-white font-bold text-blue-900">
+            <option value="ALL">全部月份檔 (全學期180筆+)</option>
+            <option value="2026年09月">2026年09月</option>
+            <option value="2026年10月">2026年10月</option>
+            <option value="2026年11月">2026年11月</option>
+            <option value="2026年12月">2026年12月</option>
+            <option value="2027年01月">2027年01月</option>
+          </select>
+        </div>
+
+        <button type="button" onclick="addRecordFromGen()" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          新增至紀錄 (累積並自動清空輸入框)
+        </button>
+        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+          📊 匯出 Excel
+        </button>
+        <button onclick="exportToWord()" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v14a2 2 0 01-2 2z"></path></svg>
+          📝 匯出 Word
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- A4 Printable Pages Container -->
+  <div id="pages-container" class="max-w-4xl mx-auto"></div>
+
+  <script>
+    const students = [{"座號": "01", "姓名": "王昱婕", "性別": "女", "班級職務": "資料整理股長", "緊急聯絡人": "王爸爸", "聯絡電話": "0912-100001", "輔導重點與特殊狀況": "領導力佳，學習態度積極，性向平穩"}, {"座號": "02", "姓名": "吳思瑩", "性別": "女", "班級職務": "理化小老師", "緊急聯絡人": "吳媽媽", "聯絡電話": "0923-100002", "輔導重點與特殊狀況": "做事認真負責，與同學關係融洽"}, {"座號": "03", "姓名": "吳婕希", "性別": "女", "班級職務": "聯絡簿負責人", "緊急聯絡人": "吳爸爸", "聯絡電話": "0934-100003", "輔導重點與特殊狀況": "正義感強，維護班級秩序有條不紊"}, {"座號": "04", "姓名": "呂品妍", "性別": "女", "班級職務": "學藝股長", "緊急聯絡人": "呂媽媽", "聯絡電話": "0945-100004", "輔導重點與特殊狀況": "美術天分佳，負責黑板報與公告欄製作"}, {"座號": "05", "姓名": "巫婧", "性別": "女", "班級職務": "資訊+設備股長", "緊急聯絡人": "巫爸爸", "聯絡電話": "0956-100005", "輔導重點與特殊狀況": "打掃時間指導同學確實，服務熱忱高"}, {"座號": "06", "姓名": "林子妍", "性別": "女", "班級職務": "副風紀", "緊急聯絡人": "林媽媽", "聯絡電話": "0967-100006", "輔導重點與特殊狀況": "田徑表現佳，帶動班級體育活動氣氛"}, {"座號": "07", "姓名": "王姿甯", "性別": "女", "班級職務": "地理小老師", "緊急聯絡人": "王爸爸", "聯絡電話": "0978-100007", "輔導重點與特殊狀況": "細心謹慎，保管班費與公物維護良好"}, {"座號": "08", "姓名": "邱湘婷", "性別": "女", "班級職務": "理化小老師", "緊急聯絡人": "邱媽媽", "聯絡電話": "0989-100008", "輔導重點與特殊狀況": "熱愛閱讀，積極推廣班級圖書角借閱"}, {"座號": "09", "姓名": "姚舒晴", "性別": "女", "班級職務": "聯絡簿負責人", "緊急聯絡人": "姚爸爸", "聯絡電話": "0911-100009", "輔導重點與特殊狀況": "國文成績優異，協助老師收發作業"}, {"座號": "10", "姓名": "張力勻", "性別": "女", "班級職務": "數學小老師", "緊急聯絡人": "張媽媽", "聯絡電話": "0922-100010", "輔導重點與特殊狀況": "英文口語佳，主動輔導後進同學"}, {"座號": "11", "姓名": "張芸瑄", "性別": "女", "班級職務": "無", "緊急聯絡人": "張爸爸", "聯絡電話": "0933-100011", "輔導重點與特殊狀況": "數理邏輯強，個性內向但有耐性"}, {"座號": "12", "姓名": "莊予慈", "性別": "女", "班級職務": "總務股長", "緊急聯絡人": "莊媽媽", "聯絡電話": "0944-100012", "輔導重點與特殊狀況": "對科學實驗充滿好奇，上課發問踴躍"}, {"座號": "13", "姓名": "許孟潔", "性別": "女", "班級職務": "無", "緊急聯絡人": "許爸爸", "聯絡電話": "0955-100013", "輔導重點與特殊狀況": "歷史地理知識廣博，喜好發表見解"}, {"座號": "14", "姓名": "許祐綾", "性別": "女", "班級職務": "風紀股長", "緊急聯絡人": "許媽媽", "聯絡電話": "0966-100014", "輔導重點與特殊狀況": "活潑開朗，擅長規劃班級康樂活動"}, {"座號": "16", "姓名": "陳佑瑄", "性別": "女", "班級職務": "體育股長", "緊急聯絡人": "陳媽媽", "聯絡電話": "0988-100016", "輔導重點與特殊狀況": "專心聽講，協助維護體育器材與整隊，表現平穩"}, {"座號": "17", "姓名": "陳品蓁", "性別": "女", "班級職務": "地科小老師", "緊急聯絡人": "陳爸爸", "聯絡電話": "0919-100017", "輔導重點與特殊狀況": "文靜禮貌，作業繳交及時"}, {"座號": "18", "姓名": "楊巧瑄", "性別": "女", "班級職務": "無", "緊急聯絡人": "楊媽媽", "聯絡電話": "0928-100018", "輔導重點與特殊狀況": "熱心助人，主動維護班級環境衛生"}, {"座號": "19", "姓名": "楊茗棋", "性別": "女", "班級職務": "副班長", "緊急聯絡人": "楊爸爸", "聯絡電話": "0937-100019", "輔導重點與特殊狀況": "個性沉穩，文章寫作能力突出"}, {"座號": "20", "姓名": "鄒昕妤", "性別": "女", "班級職務": "國文小老師", "緊急聯絡人": "鄒媽媽", "聯絡電話": "0946-100020", "輔導重點與特殊狀況": "具同理心，人際關係良好"}, {"座號": "21", "姓名": "魏愉宣", "性別": "女", "班級職務": "地科小老師", "緊急聯絡人": "魏爸爸", "聯絡電話": "0955-100021", "輔導重點與特殊狀況": "課業態度積極，自主學習能力強"}, {"座號": "22", "姓名": "王宥仁", "性別": "男", "班級職務": "無", "緊急聯絡人": "王媽媽", "聯絡電話": "0964-100022", "輔導重點與特殊狀況": "反應敏捷，專注力佳"}, {"座號": "23", "姓名": "王柏翰", "性別": "男", "班級職務": "無", "緊急聯絡人": "王爸爸", "聯絡電話": "0973-100023", "輔導重點與特殊狀況": "數理天分好，同儕互動融洽"}, {"座號": "24", "姓名": "吳毅軒", "性別": "男", "班級職務": "鎖門負責人", "緊急聯絡人": "吳媽媽", "聯絡電話": "0982-100024", "輔導重點與特殊狀況": "體育表現優異，團隊合作精神佳"}, {"座號": "25", "姓名": "呂尚紘", "性別": "男", "班級職務": "班長", "緊急聯絡人": "呂爸爸", "聯絡電話": "0913-100025", "輔導重點與特殊狀況": "領導能力強，熱心公務，打掃踏實"}, {"座號": "26", "姓名": "李權紘", "性別": "男", "班級職務": "公民小老師", "緊急聯絡人": "李媽媽", "聯絡電話": "0924-100026", "輔導重點與特殊狀況": "對自然科學具濃厚興趣"}, {"座號": "27", "姓名": "杜彥均", "性別": "男", "班級職務": "無", "緊急聯絡人": "杜爸爸", "聯絡電話": "0935-100027", "輔導重點與特殊狀況": "思考靈活，學習動機強"}, {"座號": "28", "姓名": "邱奕恩", "性別": "男", "班級職務": "無", "緊急聯絡人": "邱媽媽", "聯絡電話": "0946-100028", "輔導重點與特殊狀況": "禮貌周到，尊敬師長"}, {"座號": "29", "姓名": "邱顗玹", "性別": "男", "班級職務": "無", "緊急聯絡人": "邱爸爸", "聯絡電話": "0957-100029", "輔導重點與特殊狀況": "樂觀進取，人緣極佳"}, {"座號": "30", "姓名": "邱顯亦", "性別": "男", "班級職務": "無", "緊急聯絡人": "邱媽媽", "聯絡電話": "0968-100030", "輔導重點與特殊狀況": "做事沉穩，遵守校規"}, {"座號": "31", "姓名": "姜芃睿", "性別": "男", "班級職務": "輔導股長", "緊急聯絡人": "姜爸爸", "聯絡電話": "0912-100031", "輔導重點與特殊狀況": "對程式設計與資訊充滿興趣"}, {"座號": "32", "姓名": "洪鼎祐", "性別": "男", "班級職務": "環保股長(內)", "緊急聯絡人": "洪媽媽", "聯絡電話": "0923-100032", "輔導重點與特殊狀況": "課堂參與度高，發問踴躍"}, {"座號": "33", "姓名": "秦湘宏", "性別": "男", "班級職務": "衛生股長(外)", "緊急聯絡人": "秦爸爸", "聯絡電話": "0934-100033", "輔導重點與特殊狀況": "對歷史地理通識知識豐富"}, {"座號": "34", "姓名": "張永謙", "性別": "男", "班級職務": "無", "緊急聯絡人": "張媽媽", "聯絡電話": "0945-100034", "輔導重點與特殊狀況": "性格開朗，團隊融洽"}, {"座號": "35", "姓名": "曹泳釤", "性別": "男", "班級職務": "無", "緊急聯絡人": "曹爸爸", "聯絡電話": "0956-100035", "輔導重點與特殊狀況": "游泳與體育擅長"}, {"座號": "36", "姓名": "郭承易", "性別": "男", "班級職務": "無", "緊急聯絡人": "郭媽媽", "聯絡電話": "0967-100036", "輔導重點與特殊狀況": "學習積極，態度端正"}, {"座號": "37", "姓名": "陳晏叡", "性別": "男", "班級職務": "無", "緊急聯絡人": "陳爸爸", "聯絡電話": "0978-100037", "輔導重點與特殊狀況": "細心負責，個性溫和"}, {"座號": "38", "姓名": "陳駿威", "性別": "男", "班級職務": "無", "緊急聯絡人": "陳媽媽", "聯絡電話": "0989-100038", "輔導重點與特殊狀況": "熱心班級事物，人際互動佳"}, {"座號": "39", "姓名": "黃品睿", "性別": "男", "班級職務": "作文小老師", "緊急聯絡人": "黃爸爸", "聯絡電話": "0911-100039", "輔導重點與特殊狀況": "數理邏輯強，思考敏捷"}, {"座號": "40", "姓名": "廖禾澄", "性別": "男", "班級職務": "用餐管理股長", "緊急聯絡人": "廖媽媽", "聯絡電話": "0922-100040", "輔導重點與特殊狀況": "愛護公物，打掃認真"}, {"座號": "41", "姓名": "劉宗權", "性別": "男", "班級職務": "歷史小老師", "緊急聯絡人": "劉爸爸", "聯絡電話": "0933-100041", "輔導重點與特殊狀況": "學習穩定，態度謙遜"}, {"座號": "42", "姓名": "蔡秉澂", "性別": "男", "班級職務": "無", "緊急聯絡人": "蔡媽媽", "聯絡電話": "0944-100042", "輔導重點與特殊狀況": "積極參與同儕討論與活動"}, {"座號": "43", "姓名": "盧永翔", "性別": "男", "班級職務": "圖書股長", "緊急聯絡人": "盧爸爸", "聯絡電話": "0955-100043", "輔導重點與特殊狀況": "樂觀向上，適應力強"}, {"座號": "44", "姓名": "謝宥晨", "性別": "男", "班級職務": "無", "緊急聯絡人": "謝媽媽", "聯絡電話": "0966-100044", "輔導重點與特殊狀況": "尊師重道，守時守紀"}, {"座號": "45", "姓名": "謝彥為", "性別": "男", "班級職務": "無", "緊急聯絡人": "謝爸爸", "聯絡電話": "0977-100045", "輔導重點與特殊狀況": "熱愛閱讀與思考"}, {"座號": "46", "姓名": "鍾佳哲", "性別": "男", "班級職務": "班牌負責人", "緊急聯絡人": "鍾媽媽", "聯絡電話": "0988-100046", "輔導重點與特殊狀況": "做事負責，同學信任"}, {"座號": "47", "姓名": "罗永承", "性別": "男", "班級職務": "無", "緊急聯絡人": "羅爸爸", "聯絡電話": "0919-100047", "輔導重點與特殊狀況": "性向平穩，樂於協助他人"}];
+    const recordsData = {"2026年09月": [{"id": "rec-1-1", "no": "1", "date": "2026-09-01", "time": "10:10", "datetime_display": "9/1 10:10", "seat": "10", "name": "張力勻", "target": "面談(家長)", "topic": "人際關係", "summary": "指導【張力勻】擔任數學小老師溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-1-2", "no": "2", "date": "2026-09-02", "time": "09:15", "datetime_display": "9/2 09:15", "seat": "13", "name": "許孟潔", "target": "電聯家長", "topic": "其他", "summary": "【許孟潔】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-1-3", "no": "3", "date": "2026-09-03", "time": "08:00", "datetime_display": "9/3 08:00", "seat": "06", "name": "林子妍", "target": "家訪", "topic": "例行晤談", "summary": "【林子妍】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-1-4", "no": "4", "date": "2026-09-04", "time": "08:00", "datetime_display": "9/4 08:00", "seat": "29", "name": "邱顗玹", "target": "電聯家長", "topic": "人際關係", "summary": "關心【邱顗玹】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-1-5", "no": "5", "date": "2026-09-05", "time": "15:10", "datetime_display": "9/5 15:10", "seat": "34", "name": "張永謙", "target": "面談(學生)", "topic": "人際關係", "summary": "關心【張永謙】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-1-6", "no": "6", "date": "2026-09-08", "time": "16:05", "datetime_display": "9/8 16:05", "seat": "21", "name": "魏愉宣", "target": "其他", "topic": "課業學習", "summary": "【魏愉宣】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-1-7", "no": "7", "date": "2026-09-09", "time": "08:00", "datetime_display": "9/9 08:00", "seat": "32", "name": "洪鼎祐", "target": "面談(學生)", "topic": "課業學習", "summary": "【洪鼎祐】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-1-8", "no": "8", "date": "2026-09-10", "time": "15:10", "datetime_display": "9/10 15:10", "seat": "27", "name": "杜彥均", "target": "其他", "topic": "人際關係", "summary": "關心【杜彥均】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-1-9", "no": "9", "date": "2026-09-11", "time": "10:10", "datetime_display": "9/11 10:10", "seat": "24", "name": "吳毅軒", "target": "面談(家長)", "topic": "學生請假", "summary": "確認【吳毅軒】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-1-10", "no": "10", "date": "2026-09-12", "time": "16:05", "datetime_display": "9/12 16:05", "seat": "28", "name": "邱奕恩", "target": "面談(學生)", "topic": "例行晤談", "summary": "【邱奕恩】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-1-11", "no": "11", "date": "2026-09-15", "time": "16:05", "datetime_display": "9/15 16:05", "seat": "33", "name": "秦湘宏", "target": "電聯家長", "topic": "常規問題", "summary": "透過電話與秦爸爸聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-1-12", "no": "12", "date": "2026-09-16", "time": "08:00", "datetime_display": "9/16 08:00", "seat": "11", "name": "張芸瑄", "target": "面談(家長)", "topic": "其他", "summary": "【張芸瑄】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-1-13", "no": "13", "date": "2026-09-17", "time": "08:00", "datetime_display": "9/17 08:00", "seat": "12", "name": "莊予慈", "target": "電聯家長", "topic": "課業學習", "summary": "與莊媽媽討論【莊予慈】近期學習表現。家長感謝導師適時指導，全力支持考前複習。"}, {"id": "rec-1-14", "no": "14", "date": "2026-09-18", "time": "12:35", "datetime_display": "9/18 12:35", "seat": "30", "name": "邱顯亦", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【邱顯亦】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-15", "no": "15", "date": "2026-09-19", "time": "09:15", "datetime_display": "9/19 09:15", "seat": "09", "name": "姚舒晴", "target": "電聯家長", "topic": "人際關係", "summary": "指導【姚舒晴】擔任聯絡簿負責人溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-1-16", "no": "16", "date": "2026-09-22", "time": "09:15", "datetime_display": "9/22 09:15", "seat": "22", "name": "王宥仁", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【王宥仁】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-17", "no": "17", "date": "2026-09-23", "time": "16:05", "datetime_display": "9/23 16:05", "seat": "18", "name": "楊巧瑄", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【楊巧瑄】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-18", "no": "18", "date": "2026-09-24", "time": "15:10", "datetime_display": "9/24 15:10", "seat": "37", "name": "陳晏叡", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【陳晏叡】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-19", "no": "19", "date": "2026-09-25", "time": "15:10", "datetime_display": "9/25 15:10", "seat": "07", "name": "王姿甯", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【王姿甯】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-20", "no": "20", "date": "2026-09-26", "time": "09:15", "datetime_display": "9/26 09:15", "seat": "26", "name": "李權紘", "target": "家訪", "topic": "課業學習", "summary": "【李權紘】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-1-21", "no": "21", "date": "2026-09-29", "time": "10:10", "datetime_display": "9/29 10:10", "seat": "01", "name": "王昱婕", "target": "其他", "topic": "服裝儀容", "summary": "提醒【王昱婕】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-22", "no": "22", "date": "2026-09-30", "time": "09:15", "datetime_display": "9/30 09:15", "seat": "36", "name": "郭承易", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【郭承易】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-23", "no": "23", "date": "2026-09-01", "time": "08:00", "datetime_display": "9/1 08:00", "seat": "14", "name": "許祐綾", "target": "面談(學生)", "topic": "常規問題", "summary": "【許祐綾】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-1-24", "no": "24", "date": "2026-09-02", "time": "10:10", "datetime_display": "9/2 10:10", "seat": "20", "name": "鄒昕妤", "target": "電聯家長", "topic": "課業學習", "summary": "與鄒媽媽討論【鄒昕妤】近期學習表現。家長感謝導師適時指導，全力支持考前複習。"}, {"id": "rec-1-25", "no": "25", "date": "2026-09-03", "time": "08:00", "datetime_display": "9/3 08:00", "seat": "03", "name": "吳婕希", "target": "其他", "topic": "常規問題", "summary": "透過電話與吳爸爸聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-1-26", "no": "26", "date": "2026-09-04", "time": "16:05", "datetime_display": "9/4 16:05", "seat": "35", "name": "曹泳釤", "target": "面談(家長)", "topic": "人際關係", "summary": "關心【曹泳釤】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-1-27", "no": "27", "date": "2026-09-05", "time": "16:05", "datetime_display": "9/5 16:05", "seat": "31", "name": "姜芃睿", "target": "家訪", "topic": "課業學習", "summary": "【姜芃睿】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-1-28", "no": "28", "date": "2026-09-08", "time": "16:05", "datetime_display": "9/8 16:05", "seat": "23", "name": "王柏翰", "target": "面談(家長)", "topic": "課業學習", "summary": "【王柏翰】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-1-29", "no": "29", "date": "2026-09-09", "time": "10:10", "datetime_display": "9/9 10:10", "seat": "04", "name": "呂品妍", "target": "面談(家長)", "topic": "常規問題", "summary": "透過電話與呂媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-1-30", "no": "30", "date": "2026-09-10", "time": "16:05", "datetime_display": "9/10 16:05", "seat": "25", "name": "呂尚紘", "target": "其他", "topic": "學生請假", "summary": "確認【呂尚紘】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-1-31", "no": "31", "date": "2026-09-11", "time": "10:10", "datetime_display": "9/11 10:10", "seat": "05", "name": "巫婧", "target": "其他", "topic": "服裝儀容", "summary": "提醒【巫婧】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-1-32", "no": "32", "date": "2026-09-12", "time": "12:35", "datetime_display": "9/12 12:35", "seat": "16", "name": "陳佑瑄", "target": "家訪", "topic": "學生請假", "summary": "確認【陳佑瑄】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-1-33", "no": "33", "date": "2026-09-15", "time": "10:10", "datetime_display": "9/15 10:10", "seat": "17", "name": "陳品蓁", "target": "面談(家長)", "topic": "常規問題", "summary": "透過電話與陳爸爸聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-1-34", "no": "34", "date": "2026-09-16", "time": "15:10", "datetime_display": "9/16 15:10", "seat": "19", "name": "楊茗棋", "target": "面談(學生)", "topic": "課業學習", "summary": "【楊茗棋】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-1-35", "no": "35", "date": "2026-09-17", "time": "08:00", "datetime_display": "9/17 08:00", "seat": "02", "name": "吳思瑩", "target": "面談(學生)", "topic": "其他", "summary": "【吳思瑩】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-1-36", "no": "36", "date": "2026-09-18", "time": "09:15", "datetime_display": "9/18 09:15", "seat": "08", "name": "邱湘婷", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【邱湘婷】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}], "2026年10月": [{"id": "rec-2-1", "no": "1", "date": "2026-10-01", "time": "15:10", "datetime_display": "10/1 15:10", "seat": "32", "name": "洪鼎祐", "target": "家訪", "topic": "常規問題", "summary": "透過電話與洪媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-2-2", "no": "2", "date": "2026-10-02", "time": "08:00", "datetime_display": "10/2 08:00", "seat": "11", "name": "張芸瑄", "target": "其他", "topic": "例行晤談", "summary": "【張芸瑄】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-3", "no": "3", "date": "2026-10-03", "time": "08:00", "datetime_display": "10/3 08:00", "seat": "08", "name": "邱湘婷", "target": "面談(學生)", "topic": "常規問題", "summary": "【邱湘婷】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-2-4", "no": "4", "date": "2026-10-04", "time": "09:15", "datetime_display": "10/4 09:15", "seat": "06", "name": "林子妍", "target": "電聯家長", "topic": "人際關係", "summary": "指導【林子妍】擔任副風紀溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-2-5", "no": "5", "date": "2026-10-05", "time": "08:00", "datetime_display": "10/5 08:00", "seat": "09", "name": "姚舒晴", "target": "其他", "topic": "學生請假", "summary": "確認【姚舒晴】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-2-6", "no": "6", "date": "2026-10-08", "time": "08:00", "datetime_display": "10/8 08:00", "seat": "29", "name": "邱顗玹", "target": "其他", "topic": "其他", "summary": "【邱顗玹】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-7", "no": "7", "date": "2026-10-09", "time": "16:05", "datetime_display": "10/9 16:05", "seat": "05", "name": "巫婧", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【巫婧】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-2-8", "no": "8", "date": "2026-10-10", "time": "08:00", "datetime_display": "10/10 08:00", "seat": "35", "name": "曹泳釤", "target": "其他", "topic": "其他", "summary": "【曹泳釤】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-9", "no": "9", "date": "2026-10-11", "time": "12:35", "datetime_display": "10/11 12:35", "seat": "33", "name": "秦湘宏", "target": "電聯家長", "topic": "其他", "summary": "【秦湘宏】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-10", "no": "10", "date": "2026-10-12", "time": "10:10", "datetime_display": "10/12 10:10", "seat": "28", "name": "邱奕恩", "target": "家訪", "topic": "學生請假", "summary": "確認【邱奕恩】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-2-11", "no": "11", "date": "2026-10-15", "time": "09:15", "datetime_display": "10/15 09:15", "seat": "07", "name": "王姿甯", "target": "面談(學生)", "topic": "常規問題", "summary": "【王姿甯】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-2-12", "no": "12", "date": "2026-10-16", "time": "10:10", "datetime_display": "10/16 10:10", "seat": "26", "name": "李權紘", "target": "其他", "topic": "例行晤談", "summary": "【李權紘】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-13", "no": "13", "date": "2026-10-17", "time": "10:10", "datetime_display": "10/17 10:10", "seat": "02", "name": "吳思瑩", "target": "面談(家長)", "topic": "人際關係", "summary": "指導【吳思瑩】擔任理化小老師溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-2-14", "no": "14", "date": "2026-10-18", "time": "16:05", "datetime_display": "10/18 16:05", "seat": "34", "name": "張永謙", "target": "面談(學生)", "topic": "學生請假", "summary": "確認【張永謙】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-2-15", "no": "15", "date": "2026-10-19", "time": "15:10", "datetime_display": "10/19 15:10", "seat": "37", "name": "陳晏叡", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【陳晏叡】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-2-16", "no": "16", "date": "2026-10-22", "time": "10:10", "datetime_display": "10/22 10:10", "seat": "13", "name": "許孟潔", "target": "電聯家長", "topic": "課業學習", "summary": "【許孟潔】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-2-17", "no": "17", "date": "2026-10-23", "time": "16:05", "datetime_display": "10/23 16:05", "seat": "22", "name": "王宥仁", "target": "面談(學生)", "topic": "課業學習", "summary": "【王宥仁】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-2-18", "no": "18", "date": "2026-10-24", "time": "12:35", "datetime_display": "10/24 12:35", "seat": "19", "name": "楊茗棋", "target": "其他", "topic": "課業學習", "summary": "【楊茗棋】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-2-19", "no": "19", "date": "2026-10-25", "time": "08:00", "datetime_display": "10/25 08:00", "seat": "12", "name": "莊予慈", "target": "面談(家長)", "topic": "人際關係", "summary": "指導【莊予慈】擔任總務股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-2-20", "no": "20", "date": "2026-10-26", "time": "16:05", "datetime_display": "10/26 16:05", "seat": "36", "name": "郭承易", "target": "面談(家長)", "topic": "例行晤談", "summary": "【郭承易】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-21", "no": "21", "date": "2026-10-29", "time": "15:10", "datetime_display": "10/29 15:10", "seat": "14", "name": "許祐綾", "target": "電聯家長", "topic": "其他", "summary": "【許祐綾】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-22", "no": "22", "date": "2026-10-30", "time": "08:00", "datetime_display": "10/30 08:00", "seat": "18", "name": "楊巧瑄", "target": "其他", "topic": "服裝儀容", "summary": "提醒【楊巧瑄】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-2-23", "no": "23", "date": "2026-10-01", "time": "12:35", "datetime_display": "10/1 12:35", "seat": "01", "name": "王昱婕", "target": "其他", "topic": "課業學習", "summary": "【王昱婕】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-2-24", "no": "24", "date": "2026-10-02", "time": "08:00", "datetime_display": "10/2 08:00", "seat": "30", "name": "邱顯亦", "target": "面談(學生)", "topic": "常規問題", "summary": "【邱顯亦】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-2-25", "no": "25", "date": "2026-10-03", "time": "08:00", "datetime_display": "10/3 08:00", "seat": "17", "name": "陳品蓁", "target": "面談(學生)", "topic": "其他", "summary": "【陳品蓁】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-26", "no": "26", "date": "2026-10-04", "time": "09:15", "datetime_display": "10/4 09:15", "seat": "21", "name": "魏愉宣", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【魏愉宣】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-2-27", "no": "27", "date": "2026-10-05", "time": "10:10", "datetime_display": "10/5 10:10", "seat": "16", "name": "陳佑瑄", "target": "其他", "topic": "例行晤談", "summary": "【陳佑瑄】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-28", "no": "28", "date": "2026-10-08", "time": "12:35", "datetime_display": "10/8 12:35", "seat": "04", "name": "呂品妍", "target": "家訪", "topic": "人際關係", "summary": "指導【呂品妍】擔任學藝股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-2-29", "no": "29", "date": "2026-10-09", "time": "10:10", "datetime_display": "10/9 10:10", "seat": "27", "name": "杜彥均", "target": "家訪", "topic": "其他", "summary": "【杜彥均】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-30", "no": "30", "date": "2026-10-10", "time": "08:00", "datetime_display": "10/10 08:00", "seat": "24", "name": "吳毅軒", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【吳毅軒】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-2-31", "no": "31", "date": "2026-10-11", "time": "08:00", "datetime_display": "10/11 08:00", "seat": "23", "name": "王柏翰", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【王柏翰】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-2-32", "no": "32", "date": "2026-10-12", "time": "16:05", "datetime_display": "10/12 16:05", "seat": "25", "name": "呂尚紘", "target": "面談(家長)", "topic": "課業學習", "summary": "【呂尚紘】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-2-33", "no": "33", "date": "2026-10-15", "time": "16:05", "datetime_display": "10/15 16:05", "seat": "31", "name": "姜芃睿", "target": "家訪", "topic": "學生請假", "summary": "確認【姜芃睿】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-2-34", "no": "34", "date": "2026-10-16", "time": "10:10", "datetime_display": "10/16 10:10", "seat": "10", "name": "張力勻", "target": "其他", "topic": "學生請假", "summary": "確認【張力勻】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-2-35", "no": "35", "date": "2026-10-17", "time": "12:35", "datetime_display": "10/17 12:35", "seat": "20", "name": "鄒昕妤", "target": "電聯家長", "topic": "其他", "summary": "【鄒昕妤】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-2-36", "no": "36", "date": "2026-10-18", "time": "12:35", "datetime_display": "10/18 12:35", "seat": "03", "name": "吳婕希", "target": "面談(學生)", "topic": "人際關係", "summary": "指導【吳婕希】擔任聯絡簿負責人溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}], "2026年11月": [{"id": "rec-3-1", "no": "1", "date": "2026-11-01", "time": "08:00", "datetime_display": "11/1 08:00", "seat": "25", "name": "呂尚紘", "target": "家訪", "topic": "人際關係", "summary": "指導【呂尚紘】擔任班長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-3-2", "no": "2", "date": "2026-11-02", "time": "08:00", "datetime_display": "11/2 08:00", "seat": "29", "name": "邱顗玹", "target": "家訪", "topic": "課業學習", "summary": "【邱顗玹】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-3-3", "no": "3", "date": "2026-11-03", "time": "09:15", "datetime_display": "11/3 09:15", "seat": "14", "name": "許祐綾", "target": "面談(家長)", "topic": "常規問題", "summary": "透過電話與許媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-3-4", "no": "4", "date": "2026-11-04", "time": "10:10", "datetime_display": "11/4 10:10", "seat": "07", "name": "王姿甯", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【王姿甯】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-3-5", "no": "5", "date": "2026-11-05", "time": "08:00", "datetime_display": "11/5 08:00", "seat": "23", "name": "王柏翰", "target": "家訪", "topic": "例行晤談", "summary": "【王柏翰】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-6", "no": "6", "date": "2026-11-08", "time": "16:05", "datetime_display": "11/8 16:05", "seat": "33", "name": "秦湘宏", "target": "電聯家長", "topic": "例行晤談", "summary": "【秦湘宏】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-7", "no": "7", "date": "2026-11-09", "time": "10:10", "datetime_display": "11/9 10:10", "seat": "19", "name": "楊茗棋", "target": "家訪", "topic": "其他", "summary": "【楊茗棋】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-8", "no": "8", "date": "2026-11-10", "time": "16:05", "datetime_display": "11/10 16:05", "seat": "17", "name": "陳品蓁", "target": "其他", "topic": "課業學習", "summary": "【陳品蓁】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-3-9", "no": "9", "date": "2026-11-11", "time": "15:10", "datetime_display": "11/11 15:10", "seat": "09", "name": "姚舒晴", "target": "面談(家長)", "topic": "常規問題", "summary": "透過電話與姚爸爸聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-3-10", "no": "10", "date": "2026-11-12", "time": "12:35", "datetime_display": "11/12 12:35", "seat": "16", "name": "陳佑瑄", "target": "電聯家長", "topic": "課業學習", "summary": "與陳媽媽討論【陳佑瑄】近期學習表現。家長感謝導師適時指導，全力支持考前複習。"}, {"id": "rec-3-11", "no": "11", "date": "2026-11-15", "time": "15:10", "datetime_display": "11/15 15:10", "seat": "03", "name": "吳婕希", "target": "面談(學生)", "topic": "其他", "summary": "【吳婕希】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-12", "no": "12", "date": "2026-11-16", "time": "10:10", "datetime_display": "11/16 10:10", "seat": "22", "name": "王宥仁", "target": "面談(學生)", "topic": "常規問題", "summary": "【王宥仁】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-3-13", "no": "13", "date": "2026-11-17", "time": "09:15", "datetime_display": "11/17 09:15", "seat": "05", "name": "巫婧", "target": "其他", "topic": "例行晤談", "summary": "【巫婧】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-14", "no": "14", "date": "2026-11-18", "time": "15:10", "datetime_display": "11/18 15:10", "seat": "24", "name": "吳毅軒", "target": "其他", "topic": "服裝儀容", "summary": "提醒【吳毅軒】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-3-15", "no": "15", "date": "2026-11-19", "time": "15:10", "datetime_display": "11/19 15:10", "seat": "02", "name": "吳思瑩", "target": "電聯家長", "topic": "人際關係", "summary": "指導【吳思瑩】擔任理化小老師溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-3-16", "no": "16", "date": "2026-11-22", "time": "15:10", "datetime_display": "11/22 15:10", "seat": "34", "name": "張永謙", "target": "家訪", "topic": "常規問題", "summary": "透過電話與張媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-3-17", "no": "17", "date": "2026-11-23", "time": "08:00", "datetime_display": "11/23 08:00", "seat": "11", "name": "張芸瑄", "target": "電聯家長", "topic": "人際關係", "summary": "關心【張芸瑄】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-3-18", "no": "18", "date": "2026-11-24", "time": "08:00", "datetime_display": "11/24 08:00", "seat": "21", "name": "魏愉宣", "target": "面談(家長)", "topic": "其他", "summary": "【魏愉宣】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-19", "no": "19", "date": "2026-11-25", "time": "15:10", "datetime_display": "11/25 15:10", "seat": "27", "name": "杜彥均", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【杜彥均】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-3-20", "no": "20", "date": "2026-11-26", "time": "12:35", "datetime_display": "11/26 12:35", "seat": "13", "name": "許孟潔", "target": "面談(學生)", "topic": "其他", "summary": "【許孟潔】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-21", "no": "21", "date": "2026-11-29", "time": "16:05", "datetime_display": "11/29 16:05", "seat": "31", "name": "姜芃睿", "target": "家訪", "topic": "學生請假", "summary": "確認【姜芃睿】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-3-22", "no": "22", "date": "2026-11-30", "time": "08:00", "datetime_display": "11/30 08:00", "seat": "18", "name": "楊巧瑄", "target": "面談(家長)", "topic": "常規問題", "summary": "透過電話與楊媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-3-23", "no": "23", "date": "2026-11-01", "time": "16:05", "datetime_display": "11/1 16:05", "seat": "06", "name": "林子妍", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【林子妍】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-3-24", "no": "24", "date": "2026-11-02", "time": "15:10", "datetime_display": "11/2 15:10", "seat": "37", "name": "陳晏叡", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【陳晏叡】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-3-25", "no": "25", "date": "2026-11-03", "time": "16:05", "datetime_display": "11/3 16:05", "seat": "30", "name": "邱顯亦", "target": "電聯家長", "topic": "例行晤談", "summary": "【邱顯亦】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-26", "no": "26", "date": "2026-11-04", "time": "08:00", "datetime_display": "11/4 08:00", "seat": "20", "name": "鄒昕妤", "target": "家訪", "topic": "例行晤談", "summary": "【鄒昕妤】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-27", "no": "27", "date": "2026-11-05", "time": "10:10", "datetime_display": "11/5 10:10", "seat": "04", "name": "呂品妍", "target": "其他", "topic": "常規問題", "summary": "透過電話與呂媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-3-28", "no": "28", "date": "2026-11-08", "time": "16:05", "datetime_display": "11/8 16:05", "seat": "32", "name": "洪鼎祐", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【洪鼎祐】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-3-29", "no": "29", "date": "2026-11-09", "time": "08:00", "datetime_display": "11/9 08:00", "seat": "01", "name": "王昱婕", "target": "家訪", "topic": "人際關係", "summary": "指導【王昱婕】擔任資料整理股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-3-30", "no": "30", "date": "2026-11-10", "time": "10:10", "datetime_display": "11/10 10:10", "seat": "10", "name": "張力勻", "target": "其他", "topic": "例行晤談", "summary": "【張力勻】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-31", "no": "31", "date": "2026-11-11", "time": "15:10", "datetime_display": "11/11 15:10", "seat": "36", "name": "郭承易", "target": "其他", "topic": "人際關係", "summary": "關心【郭承易】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-3-32", "no": "32", "date": "2026-11-12", "time": "12:35", "datetime_display": "11/12 12:35", "seat": "26", "name": "李權紘", "target": "電聯家長", "topic": "例行晤談", "summary": "【李權紘】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-33", "no": "33", "date": "2026-11-15", "time": "12:35", "datetime_display": "11/15 12:35", "seat": "12", "name": "莊予慈", "target": "家訪", "topic": "人際關係", "summary": "指導【莊予慈】擔任總務股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-3-34", "no": "34", "date": "2026-11-16", "time": "12:35", "datetime_display": "11/16 12:35", "seat": "08", "name": "邱湘婷", "target": "其他", "topic": "人際關係", "summary": "指導【邱湘婷】擔任理化小老師溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-3-35", "no": "35", "date": "2026-11-17", "time": "12:35", "datetime_display": "11/17 12:35", "seat": "35", "name": "曹泳釤", "target": "電聯家長", "topic": "例行晤談", "summary": "【曹泳釤】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-3-36", "no": "36", "date": "2026-11-18", "time": "10:10", "datetime_display": "11/18 10:10", "seat": "28", "name": "邱奕恩", "target": "面談(家長)", "topic": "常規問題", "summary": "透過電話與邱媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}], "2026年12月": [{"id": "rec-4-1", "no": "1", "date": "2026-12-01", "time": "10:10", "datetime_display": "12/1 10:10", "seat": "36", "name": "郭承易", "target": "電聯家長", "topic": "其他", "summary": "【郭承易】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-2", "no": "2", "date": "2026-12-02", "time": "08:00", "datetime_display": "12/2 08:00", "seat": "08", "name": "邱湘婷", "target": "面談(學生)", "topic": "課業學習", "summary": "【邱湘婷】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-4-3", "no": "3", "date": "2026-12-03", "time": "08:00", "datetime_display": "12/3 08:00", "seat": "16", "name": "陳佑瑄", "target": "電聯家長", "topic": "其他", "summary": "【陳佑瑄】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-4", "no": "4", "date": "2026-12-04", "time": "10:10", "datetime_display": "12/4 10:10", "seat": "23", "name": "王柏翰", "target": "家訪", "topic": "其他", "summary": "【王柏翰】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-5", "no": "5", "date": "2026-12-05", "time": "16:05", "datetime_display": "12/5 16:05", "seat": "34", "name": "張永謙", "target": "其他", "topic": "服裝儀容", "summary": "提醒【張永謙】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-4-6", "no": "6", "date": "2026-12-08", "time": "16:05", "datetime_display": "12/8 16:05", "seat": "27", "name": "杜彥均", "target": "其他", "topic": "學生請假", "summary": "確認【杜彥均】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-4-7", "no": "7", "date": "2026-12-09", "time": "16:05", "datetime_display": "12/9 16:05", "seat": "35", "name": "曹泳釤", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【曹泳釤】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-4-8", "no": "8", "date": "2026-12-10", "time": "15:10", "datetime_display": "12/10 15:10", "seat": "20", "name": "鄒昕妤", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【鄒昕妤】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-4-9", "no": "9", "date": "2026-12-11", "time": "12:35", "datetime_display": "12/11 12:35", "seat": "31", "name": "姜芃睿", "target": "面談(家長)", "topic": "人際關係", "summary": "指導【姜芃睿】擔任輔導股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-4-10", "no": "10", "date": "2026-12-12", "time": "10:10", "datetime_display": "12/12 10:10", "seat": "21", "name": "魏愉宣", "target": "面談(學生)", "topic": "常規問題", "summary": "【魏愉宣】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-4-11", "no": "11", "date": "2026-12-15", "time": "09:15", "datetime_display": "12/15 09:15", "seat": "07", "name": "王姿甯", "target": "其他", "topic": "課業學習", "summary": "【王姿甯】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-4-12", "no": "12", "date": "2026-12-16", "time": "12:35", "datetime_display": "12/16 12:35", "seat": "12", "name": "莊予慈", "target": "面談(家長)", "topic": "人際關係", "summary": "指導【莊予慈】擔任總務股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-4-13", "no": "13", "date": "2026-12-17", "time": "12:35", "datetime_display": "12/17 12:35", "seat": "13", "name": "許孟潔", "target": "家訪", "topic": "課業學習", "summary": "【許孟潔】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-4-14", "no": "14", "date": "2026-12-18", "time": "09:15", "datetime_display": "12/18 09:15", "seat": "14", "name": "許祐綾", "target": "家訪", "topic": "學生請假", "summary": "確認【許祐綾】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-4-15", "no": "15", "date": "2026-12-19", "time": "15:10", "datetime_display": "12/19 15:10", "seat": "24", "name": "吳毅軒", "target": "其他", "topic": "例行晤談", "summary": "【吳毅軒】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-16", "no": "16", "date": "2026-12-22", "time": "12:35", "datetime_display": "12/22 12:35", "seat": "37", "name": "陳晏叡", "target": "其他", "topic": "例行晤談", "summary": "【陳晏叡】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-17", "no": "17", "date": "2026-12-23", "time": "15:10", "datetime_display": "12/23 15:10", "seat": "09", "name": "姚舒晴", "target": "其他", "topic": "例行晤談", "summary": "【姚舒晴】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-18", "no": "18", "date": "2026-12-24", "time": "15:10", "datetime_display": "12/24 15:10", "seat": "05", "name": "巫婧", "target": "其他", "topic": "服裝儀容", "summary": "提醒【巫婧】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-4-19", "no": "19", "date": "2026-12-25", "time": "10:10", "datetime_display": "12/25 10:10", "seat": "29", "name": "邱顗玹", "target": "電聯家長", "topic": "人際關係", "summary": "關心【邱顗玹】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-4-20", "no": "20", "date": "2026-12-26", "time": "09:15", "datetime_display": "12/26 09:15", "seat": "02", "name": "吳思瑩", "target": "面談(學生)", "topic": "常規問題", "summary": "【吳思瑩】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-4-21", "no": "21", "date": "2026-12-29", "time": "15:10", "datetime_display": "12/29 15:10", "seat": "22", "name": "王宥仁", "target": "面談(學生)", "topic": "人際關係", "summary": "關心【王宥仁】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-4-22", "no": "22", "date": "2026-12-30", "time": "12:35", "datetime_display": "12/30 12:35", "seat": "25", "name": "呂尚紘", "target": "面談(學生)", "topic": "其他", "summary": "【呂尚紘】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-23", "no": "23", "date": "2026-12-01", "time": "08:00", "datetime_display": "12/1 08:00", "seat": "26", "name": "李權紘", "target": "其他", "topic": "學生請假", "summary": "確認【李權紘】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-4-24", "no": "24", "date": "2026-12-02", "time": "16:05", "datetime_display": "12/2 16:05", "seat": "32", "name": "洪鼎祐", "target": "其他", "topic": "人際關係", "summary": "指導【洪鼎祐】擔任環保股長(內)溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-4-25", "no": "25", "date": "2026-12-03", "time": "10:10", "datetime_display": "12/3 10:10", "seat": "04", "name": "呂品妍", "target": "家訪", "topic": "課業學習", "summary": "【呂品妍】針對段考複習進行晤談。導師指導讀書策略與目標，學生重拾自信努力衝刺。"}, {"id": "rec-4-26", "no": "26", "date": "2026-12-04", "time": "09:15", "datetime_display": "12/4 09:15", "seat": "30", "name": "邱顯亦", "target": "電聯家長", "topic": "人際關係", "summary": "關心【邱顯亦】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-4-27", "no": "27", "date": "2026-12-05", "time": "09:15", "datetime_display": "12/5 09:15", "seat": "17", "name": "陳品蓁", "target": "其他", "topic": "服裝儀容", "summary": "提醒【陳品蓁】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-4-28", "no": "28", "date": "2026-12-08", "time": "16:05", "datetime_display": "12/8 16:05", "seat": "03", "name": "吳婕希", "target": "家訪", "topic": "常規問題", "summary": "透過電話與吳爸爸聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-4-29", "no": "29", "date": "2026-12-09", "time": "08:00", "datetime_display": "12/9 08:00", "seat": "01", "name": "王昱婕", "target": "面談(學生)", "topic": "常規問題", "summary": "【王昱婕】於課堂專注度稍有浮躁。導師進行個別關懷提醒，學生態度端正，承諾維護常規。"}, {"id": "rec-4-30", "no": "30", "date": "2026-12-10", "time": "15:10", "datetime_display": "12/10 15:10", "seat": "11", "name": "張芸瑄", "target": "家訪", "topic": "人際關係", "summary": "關心【張芸瑄】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-4-31", "no": "31", "date": "2026-12-11", "time": "08:00", "datetime_display": "12/11 08:00", "seat": "10", "name": "張力勻", "target": "其他", "topic": "常規問題", "summary": "透過電話與張媽媽聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-4-32", "no": "32", "date": "2026-12-12", "time": "09:15", "datetime_display": "12/12 09:15", "seat": "06", "name": "林子妍", "target": "面談(學生)", "topic": "其他", "summary": "【林子妍】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-33", "no": "33", "date": "2026-12-15", "time": "08:00", "datetime_display": "12/15 08:00", "seat": "18", "name": "楊巧瑄", "target": "面談(家長)", "topic": "例行晤談", "summary": "【楊巧瑄】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-34", "no": "34", "date": "2026-12-16", "time": "12:35", "datetime_display": "12/16 12:35", "seat": "33", "name": "秦湘宏", "target": "其他", "topic": "其他", "summary": "【秦湘宏】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-35", "no": "35", "date": "2026-12-17", "time": "09:15", "datetime_display": "12/17 09:15", "seat": "28", "name": "邱奕恩", "target": "家訪", "topic": "例行晤談", "summary": "【邱奕恩】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-4-36", "no": "36", "date": "2026-12-18", "time": "12:35", "datetime_display": "12/18 12:35", "seat": "19", "name": "楊茗棋", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【楊茗棋】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}], "2027年01月": [{"id": "rec-5-1", "no": "1", "date": "2027-01-01", "time": "10:10", "datetime_display": "1/1 10:10", "seat": "21", "name": "魏愉宣", "target": "家訪", "topic": "學生請假", "summary": "確認【魏愉宣】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-5-2", "no": "2", "date": "2027-01-02", "time": "16:05", "datetime_display": "1/2 16:05", "seat": "34", "name": "張永謙", "target": "面談(家長)", "topic": "人際關係", "summary": "關心【張永謙】班級人際互動。學生與同學相處融洽，能互相討論，班級氣氛充滿歡樂。"}, {"id": "rec-5-3", "no": "3", "date": "2027-01-03", "time": "08:00", "datetime_display": "1/3 08:00", "seat": "09", "name": "姚舒晴", "target": "電聯家長", "topic": "學生請假", "summary": "確認【姚舒晴】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-5-4", "no": "4", "date": "2027-01-04", "time": "08:00", "datetime_display": "1/4 08:00", "seat": "23", "name": "王柏翰", "target": "電聯家長", "topic": "學生請假", "summary": "確認【王柏翰】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-5-5", "no": "5", "date": "2027-01-05", "time": "12:35", "datetime_display": "1/5 12:35", "seat": "25", "name": "呂尚紘", "target": "家訪", "topic": "其他", "summary": "【呂尚紘】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-6", "no": "6", "date": "2027-01-08", "time": "09:15", "datetime_display": "1/8 09:15", "seat": "14", "name": "許祐綾", "target": "電聯家長", "topic": "課業學習", "summary": "與許媽媽討論【許祐綾】近期學習表現。家長感謝導師適時指導，全力支持考前複習。"}, {"id": "rec-5-7", "no": "7", "date": "2027-01-09", "time": "10:10", "datetime_display": "1/9 10:10", "seat": "04", "name": "呂品妍", "target": "面談(家長)", "topic": "其他", "summary": "【呂品妍】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-8", "no": "8", "date": "2027-01-10", "time": "08:00", "datetime_display": "1/10 08:00", "seat": "24", "name": "吳毅軒", "target": "面談(家長)", "topic": "學生請假", "summary": "確認【吳毅軒】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-5-9", "no": "9", "date": "2027-01-11", "time": "15:10", "datetime_display": "1/11 15:10", "seat": "32", "name": "洪鼎祐", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【洪鼎祐】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-10", "no": "10", "date": "2027-01-12", "time": "08:00", "datetime_display": "1/12 08:00", "seat": "13", "name": "許孟潔", "target": "電聯家長", "topic": "其他", "summary": "【許孟潔】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-11", "no": "11", "date": "2027-01-15", "time": "08:00", "datetime_display": "1/15 08:00", "seat": "17", "name": "陳品蓁", "target": "其他", "topic": "人際關係", "summary": "指導【陳品蓁】擔任地科小老師溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-5-12", "no": "12", "date": "2027-01-16", "time": "09:15", "datetime_display": "1/16 09:15", "seat": "06", "name": "林子妍", "target": "其他", "topic": "人際關係", "summary": "指導【林子妍】擔任副風紀溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-5-13", "no": "13", "date": "2027-01-17", "time": "16:05", "datetime_display": "1/17 16:05", "seat": "08", "name": "邱湘婷", "target": "其他", "topic": "學生請假", "summary": "確認【邱湘婷】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-5-14", "no": "14", "date": "2027-01-18", "time": "09:15", "datetime_display": "1/18 09:15", "seat": "12", "name": "莊予慈", "target": "其他", "topic": "服裝儀容", "summary": "提醒【莊予慈】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-15", "no": "15", "date": "2027-01-19", "time": "09:15", "datetime_display": "1/19 09:15", "seat": "07", "name": "王姿甯", "target": "家訪", "topic": "例行晤談", "summary": "【王姿甯】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-16", "no": "16", "date": "2027-01-22", "time": "08:00", "datetime_display": "1/22 08:00", "seat": "30", "name": "邱顯亦", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【邱顯亦】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-17", "no": "17", "date": "2027-01-23", "time": "09:15", "datetime_display": "1/23 09:15", "seat": "26", "name": "李權紘", "target": "面談(學生)", "topic": "學生請假", "summary": "確認【李權紘】請假事宜與出勤狀況。導師給予關懷並指導課業補繳進度，學生積極配合。"}, {"id": "rec-5-18", "no": "18", "date": "2027-01-24", "time": "16:05", "datetime_display": "1/24 16:05", "seat": "18", "name": "楊巧瑄", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【楊巧瑄】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-19", "no": "19", "date": "2027-01-25", "time": "10:10", "datetime_display": "1/25 10:10", "seat": "33", "name": "秦湘宏", "target": "其他", "topic": "課業學習", "summary": "【秦湘宏】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-5-20", "no": "20", "date": "2027-01-26", "time": "16:05", "datetime_display": "1/26 16:05", "seat": "31", "name": "姜芃睿", "target": "其他", "topic": "例行晤談", "summary": "【姜芃睿】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-21", "no": "21", "date": "2027-01-29", "time": "16:05", "datetime_display": "1/29 16:05", "seat": "37", "name": "陳晏叡", "target": "面談(學生)", "topic": "服裝儀容", "summary": "提醒【陳晏叡】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-22", "no": "22", "date": "2027-01-30", "time": "09:15", "datetime_display": "1/30 09:15", "seat": "28", "name": "邱奕恩", "target": "面談(家長)", "topic": "其他", "summary": "【邱奕恩】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-23", "no": "23", "date": "2027-01-01", "time": "10:10", "datetime_display": "1/1 10:10", "seat": "29", "name": "邱顗玹", "target": "面談(學生)", "topic": "例行晤談", "summary": "【邱顗玹】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-24", "no": "24", "date": "2027-01-02", "time": "12:35", "datetime_display": "1/2 12:35", "seat": "22", "name": "王宥仁", "target": "面談(家長)", "topic": "課業學習", "summary": "【王宥仁】關心課堂學習狀況。學生態度正向、能與同學討論，鼓勵發揮同儕正面影響力。"}, {"id": "rec-5-25", "no": "25", "date": "2027-01-03", "time": "09:15", "datetime_display": "1/3 09:15", "seat": "11", "name": "張芸瑄", "target": "家訪", "topic": "其他", "summary": "【張芸瑄】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-26", "no": "26", "date": "2027-01-04", "time": "15:10", "datetime_display": "1/4 15:10", "seat": "35", "name": "曹泳釤", "target": "電聯家長", "topic": "其他", "summary": "【曹泳釤】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-27", "no": "27", "date": "2027-01-05", "time": "16:05", "datetime_display": "1/5 16:05", "seat": "01", "name": "王昱婕", "target": "家訪", "topic": "服裝儀容", "summary": "提醒【王昱婕】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-28", "no": "28", "date": "2027-01-08", "time": "12:35", "datetime_display": "1/8 12:35", "seat": "02", "name": "吳思瑩", "target": "面談(家長)", "topic": "服裝儀容", "summary": "提醒【吳思瑩】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-29", "no": "29", "date": "2027-01-09", "time": "12:35", "datetime_display": "1/9 12:35", "seat": "36", "name": "郭承易", "target": "電聯家長", "topic": "服裝儀容", "summary": "提醒【郭承易】服裝儀容規範。學生虛心接受導師指導，態度端正並隨即進行整理，表現良好。"}, {"id": "rec-5-30", "no": "30", "date": "2027-01-10", "time": "12:35", "datetime_display": "1/10 12:35", "seat": "19", "name": "楊茗棋", "target": "家訪", "topic": "常規問題", "summary": "透過電話與楊爸爸聯繫常規。家長表達會協助督促生活作息，親師合作維護自律良好習慣。"}, {"id": "rec-5-31", "no": "31", "date": "2027-01-11", "time": "08:00", "datetime_display": "1/11 08:00", "seat": "20", "name": "鄒昕妤", "target": "面談(學生)", "topic": "例行晤談", "summary": "【鄒昕妤】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-32", "no": "32", "date": "2027-01-12", "time": "09:15", "datetime_display": "1/12 09:15", "seat": "10", "name": "張力勻", "target": "家訪", "topic": "例行晤談", "summary": "【張力勻】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-33", "no": "33", "date": "2027-01-15", "time": "10:10", "datetime_display": "1/15 10:10", "seat": "16", "name": "陳佑瑄", "target": "其他", "topic": "人際關係", "summary": "指導【陳佑瑄】擔任體育股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}, {"id": "rec-5-34", "no": "34", "date": "2027-01-16", "time": "16:05", "datetime_display": "1/16 16:05", "seat": "03", "name": "吳婕希", "target": "其他", "topic": "其他", "summary": "【吳婕希】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-35", "no": "35", "date": "2027-01-17", "time": "10:10", "datetime_display": "1/17 10:10", "seat": "27", "name": "杜彥均", "target": "家訪", "topic": "例行晤談", "summary": "【杜彥均】課堂學習保持正向態度，針對近期學習進行晤談，升學目標明確，輔導互動良好。"}, {"id": "rec-5-36", "no": "36", "date": "2027-01-18", "time": "09:15", "datetime_display": "1/18 09:15", "seat": "05", "name": "巫婧", "target": "家訪", "topic": "人際關係", "summary": "指導【巫婧】擔任資訊+設備股長溝通技巧。肯定其熱心服務，提醒同儕相處保持謙遜包容。"}]};
+    const config = {"school_year": "113學年度", "semester": "第一學期", "school_name": "六和高級中學國中部", "grade_class": "九年五班", "teacher_name": "張慧玲", "total_students": 46, "class_motto": "活力奔放，熱情昂揚；攜手前行，勇於翱翔！", "class_features": "1.朝氣蓬勃（動能強大/體育亮眼） 2.自信展現（各方面多元發展） 3.相處融洽（互相討論/歡樂氣氛） 4.課堂學習（保持正向/升學目標明確）", "class_rules_core": ["自重自律", "互助合作", "負責守時", "尊師重道", "感恩惜福", "積極進取"], "weekly_meeting_topics": ["學期開學典禮與班規制定", "反霸凌與校園安全宣導", "友善校園週與性別平等教育", "交通安全與自主生活指導", "第一次段考前複習與讀書計畫", "第一次段考檢討與目標設定", "民主法治與班級幹部工作檢討", "環境保護與資源回收徹底落實", "職涯探索與生涯發展規劃", "第二次段考前讀書重點整理", "第二次段考分析與各科進步獎勵", "人際關係與情緒管理溝通", "校慶運動會籌備與團隊合作", "公共服務時數結算與校園整理", "期末段考衝刺與考前準備", "期末班會總結與假期安全宣導"]};
+    let lastAddedRowId = null;
+
+    // Intelligent AI Counseling Text Refiner (Target: ~30 characters objective formal tone)
+    function polishCounselingText(rawText, name, topic, target) {
+      let cleanInput = (rawText || "").trim();
+      let sname = name || "學生";
+      let topicStr = topic || "例行晤談";
+
+      if (!cleanInput) {
+        if (topicStr === "課業學習") {
+          return `關心與輔導【${sname}】課業學習與作業狀況，導師進行個別指導，學生表示配合改善。`;
+        } else if (topicStr === "常規問題") {
+          return `關心【${sname}】生活常規與品德表現，導師進行指導告誡，學生虛心接受並承諾改進。`;
+        } else if (topicStr === "人際關係") {
+          return `輔導【${sname}】同儕溝通與相處問題，引導理性表達，學生同意和睦相處。`;
+        } else if (topicStr === "學生請假") {
+          return `確認【${sname}】請假事宜與出勤狀況，導師給予關懷並叮嚀課業補繳進度。`;
+        } else if (topicStr === "服裝儀容") {
+          return `提醒【${sname}】遵守學校服儀規範，學生虛心接受導師指導並隨即配合整頓。`;
+        } else {
+          return `與【${sname}】進行${topicStr}個別晤談，導師進行關懷指導，輔導互動良好。`;
+        }
+      }
+
+      let input_text = cleanInput;
+      input_text = input_text.replace(/^與【.*?】共同參與.*?[。；;\s]*/, '');
+
+      if (input_text.length <= 90) {
+        let res = input_text;
+        if (!res.includes(sname) && !res.startsWith("【")) {
+          res = `【${sname}】${res}`;
+        }
+        if (!/[。！？.!?]$/.test(res)) {
+          res += "。";
+        }
+        return res;
+      }
+
+      let event = "";
+      if (/講髒話|髒話|不當言語|粗口|罵人/.test(input_text)) {
+        event = "學生在校使用不當言語，學務處依規擬記警告處分。";
+      } else if (/打架|爭執|口角|吵架|衝突/.test(input_text)) {
+        event = "學生發生同儕爭執與口角衝突事宜。";
+      } else if (/作業|缺交|未交|成績|考不及格/.test(input_text)) {
+        event = "學生課業學習與作業繳交狀況不佳。";
+      } else if (/遲到|曠課|請假|出勤|作息/.test(input_text)) {
+        event = "確認學生出勤與課務相關事宜。";
+      } else {
+        let firstSent = input_text.split(/[。！？\n]/)[0];
+        if (firstSent.length > 40) firstSent = firstSent.substring(0, 40) + "…";
+        event = `${firstSent}。`;
+      }
+
+      let action = "";
+      if (/家長|父母|電聯|電話|說服/.test(input_text)) {
+        if (/同意|配合|懲處|處分|警告/.test(input_text)) {
+          action = "導師告誡學生並聯絡家長溝通說明，家長同意配合學校處分與督導。";
+        } else {
+          action = "導師進行叮嚀告誡並聯絡家長溝通說明狀況。";
+        }
+      } else {
+        action = "導師進行個別叮嚀與告誡輔導。";
+      }
+
+      let followup = "後續持續觀察學生狀況與生活常規。";
+
+      return `【${sname}】${event}${action}${followup}`;
+    }
+
+    
+
+
+    
+    function formatTargetMethodLine(targetVal) {
+      let targets = [];
+      if (Array.isArray(targetVal)) {
+        targets = targetVal;
+      } else if (typeof targetVal === 'string') {
+        targets = targetVal.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      const hasFaceStu = targets.some(t => t.includes('面談(學生)') || t === '面談學生' || t === '學生面談');
+      const hasFaceParent = targets.some(t => t.includes('面談(家長)') || t === '面談家長' || t === '家長面談');
+      const hasPhone = targets.some(t => t.includes('電聯家長') || t === '電話聯絡');
+      const hasHome = targets.some(t => t.includes('家訪') || t === '家庭訪問');
+
+      let otherText = '';
+      const otherObj = targets.find(t => t.startsWith('其他') || (!['面談(學生)','面談(家長)','電聯家長','家訪'].some(k => t.includes(k))));
+      if (otherObj) {
+        if (otherObj.includes(':')) {
+          otherText = otherObj.split(':')[1].trim();
+        } else if (otherObj.includes('：')) {
+          otherText = otherObj.split('：')[1].trim();
+        } else if (otherObj !== '其他') {
+          otherText = otherObj;
+        }
+      }
+
+      const isFace = (hasFaceStu || hasFaceParent) ? '☑面談' : '☐面談';
+      const stuCheck = hasFaceStu ? '☑學生' : '☐學生';
+      const parentCheck = hasFaceParent ? '☑家長' : '☐家長';
+      const faceGroup = `${isFace}(${stuCheck} ${parentCheck})`;
+
+      const phoneGroup = hasPhone ? '☑電聯家長' : '☐電聯家長';
+      const homeGroup = hasHome ? '☑家訪' : '☐家訪';
+
+      let otherGroup = '☐其他：';
+      if (otherObj || otherText) {
+        otherGroup = `☑其他${otherText ? '：' + otherText : '：'}`;
+      }
+
+      return `${faceGroup} &nbsp;&nbsp; ${phoneGroup} &nbsp;&nbsp; ${homeGroup} &nbsp;&nbsp; ${otherGroup}`;
+    }
+
+
+    function extractSeatNumbers(inputStr) {
+      if (!inputStr) return [];
+      const matches = [];
+
+      // Match seat numbers followed by 號/番 e.g. 1號, 02號, 3番
+      const numWithSign = inputStr.match(/\b(\d{1,2})\s*(?:號|番)/g);
+      if (numWithSign) {
+        numWithSign.forEach(m => {
+          const numMatch = m.match(/\d{1,2}/);
+          if (numMatch) {
+            const seat = numMatch[0].padStart(2, '0');
+            if (students.some(s => s.座號 === seat) && !matches.includes(seat)) {
+              matches.push(seat);
+            }
+          }
+        });
+      }
+
+      // Match seat numbers separated by delimiters (01, 02 / 1 2 / 1, 3 / 05+08)
+      const tokens = inputStr.split(/[,，\s\u3001、+/&]/);
+      tokens.forEach(tok => {
+        const cleanTok = tok.replace(/[^\d]/g, '');
+        if (cleanTok && cleanTok.length <= 2) {
+          const seat = cleanTok.padStart(2, '0');
+          if (students.some(s => s.座號 === seat) && !matches.includes(seat)) {
+            matches.push(seat);
+          }
+        }
+      });
+
+      // Match student names in input text
+      students.forEach(st => {
+        if (inputStr.includes(st.姓名) && !matches.includes(st.座號)) {
+          matches.push(st.座號);
+        }
+      });
+
+      return matches;
+    }
+
+    
+    function getSelectedGenTargets() {
+      const targets = [];
+      const chkStu = document.getElementById('gen-chk-stu');
+      const chkParent = document.getElementById('gen-chk-parent');
+      const chkPhone = document.getElementById('gen-chk-phone');
+      const chkHome = document.getElementById('gen-chk-home');
+      const otherInput = document.getElementById('gen-target-other');
+
+      if (chkStu && chkStu.checked) targets.push(chkStu.value);
+      if (chkParent && chkParent.checked) targets.push(chkParent.value);
+      if (chkPhone && chkPhone.checked) targets.push(chkPhone.value);
+      if (chkHome && chkHome.checked) targets.push(chkHome.value);
+
+      if (otherInput && otherInput.value.trim()) {
+        targets.push(`其他:${otherInput.value.trim()}`);
+      }
+      return targets.length > 0 ? targets.join(',') : '面談(學生)';
+    }
+
+    function getSelectedEditTargets() {
+      const targets = [];
+      const chkStu = document.getElementById('edit-chk-stu');
+      const chkParent = document.getElementById('edit-chk-parent');
+      const chkPhone = document.getElementById('edit-chk-phone');
+      const chkHome = document.getElementById('edit-chk-home');
+      const otherInput = document.getElementById('edit-target-other');
+
+      if (chkStu && chkStu.checked) targets.push(chkStu.value);
+      if (chkParent && chkParent.checked) targets.push(chkParent.value);
+      if (chkPhone && chkPhone.checked) targets.push(chkPhone.value);
+      if (chkHome && chkHome.checked) targets.push(chkHome.value);
+
+      if (otherInput && otherInput.value.trim()) {
+        targets.push(`其他:${otherInput.value.trim()}`);
+      }
+      return targets.length > 0 ? targets.join(',') : '面談(學生)';
+    }
+
+    function setSelectedEditTargets(targetVal) {
+      let targets = [];
+      if (Array.isArray(targetVal)) targets = targetVal;
+      else if (typeof targetVal === 'string') targets = targetVal.split(',').map(s => s.trim());
+
+      const chkStu = document.getElementById('edit-chk-stu');
+      const chkParent = document.getElementById('edit-chk-parent');
+      const chkPhone = document.getElementById('edit-chk-phone');
+      const chkHome = document.getElementById('edit-chk-home');
+      const otherInput = document.getElementById('edit-target-other');
+
+      if (chkStu) chkStu.checked = targets.some(t => t.includes('面談(學生)'));
+      if (chkParent) chkParent.checked = targets.some(t => t.includes('面談(家長)'));
+      if (chkPhone) chkPhone.checked = targets.some(t => t.includes('電聯家長'));
+      if (chkHome) chkHome.checked = targets.some(t => t.includes('家訪'));
+
+      let otherText = '';
+      const otherObj = targets.find(t => t.startsWith('其他') || (!['面談(學生)','面談(家長)','電聯家長','家訪'].some(k => t.includes(k))));
+      if (otherObj) {
+        if (otherObj.includes(':')) otherText = otherObj.split(':')[1].trim();
+        else if (otherObj.includes('：')) otherText = otherObj.split('：')[1].trim();
+        else if (otherObj !== '其他') otherText = otherObj;
+      }
+      if (otherInput) otherInput.value = otherText;
+    }
+
+    function openEditModal(monthKey, recordIndex) {
+      const rec = recordsData[monthKey] ? recordsData[monthKey][recordIndex] : null;
+      if (!rec) return;
+
+      document.getElementById('edit-month-key').value = monthKey;
+      document.getElementById('edit-rec-idx').value = recordIndex;
+      document.getElementById('edit-date').value = rec.date || '';
+      document.getElementById('edit-time').value = rec.time || '';
+      document.getElementById('edit-seat').value = rec.seat || '';
+      document.getElementById('edit-name').value = rec.name || '';
+      
+      setSelectedEditTargets(rec.target);
+      if (rec.topic) document.getElementById('edit-topic').value = rec.topic;
+      
+      document.getElementById('edit-summary').value = rec.summary || '';
+      document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.add('hidden');
+    }
+
+    function onEditSeatInput(val) {
+      val = val.trim();
+      const seat = val.padStart(2, '0');
+      let st = students.find(s => s.座號 === seat);
+      if (!st && val) {
+        st = students.find(s => parseInt(s.座號, 10) === parseInt(val, 10));
+      }
+      document.getElementById('edit-name').value = st ? st.姓名 : '';
+    }
+
+    function saveEditRecord() {
+      const monthKey = document.getElementById('edit-month-key').value;
+      const idx = parseInt(document.getElementById('edit-rec-idx').value, 10);
+      
+      if (!monthKey || isNaN(idx) || !recordsData[monthKey] || !recordsData[monthKey][idx]) {
+        alert('無效的紀錄，無法儲存');
+        return;
+      }
+
+      const dateVal = document.getElementById('edit-date').value;
+      const timeVal = document.getElementById('edit-time').value.trim();
+      const seatVal = document.getElementById('edit-seat').value.trim();
+      const nameVal = document.getElementById('edit-name').value.trim();
+      const targetVal = getSelectedEditTargets();
+      const topicVal = document.getElementById('edit-topic').value;
+      const summaryVal = document.getElementById('edit-summary').value.trim();
+
+      if (!seatVal || !nameVal) {
+        alert('請輸入有效的學生座號');
+        return;
+      }
+
+      let datetimeDisplay = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          datetimeDisplay = `${m}/${d}${timeVal ? ' ' + timeVal : ''}`;
+        }
+      }
+
+      recordsData[monthKey][idx] = {
+        ...recordsData[monthKey][idx],
+        date: dateVal,
+        time: timeVal,
+        datetime_display: datetimeDisplay,
+        seat: seatVal,
+        name: nameVal,
+        target: targetVal,
+        topic: topicVal,
+        summary: summaryVal || polishCounselingText('', nameVal, topicVal, targetVal)
+      };
+
+      closeEditModal();
+      renderPages();
+    }
+
+    function deleteRecordFromModal() {
+      const monthKey = document.getElementById('edit-month-key').value;
+      const idx = parseInt(document.getElementById('edit-rec-idx').value, 10);
+      if (monthKey && !isNaN(idx)) {
+        closeEditModal();
+        deleteRecord(monthKey, idx);
+      }
+    }
+
+    function addRecordFromGen() {
+      const dateVal = document.getElementById('gen-date').value;
+      const seatVal = document.getElementById('gen-seat').value.trim();
+      const rawSummaryVal = document.getElementById('gen-summary').value.trim();
+      const timeVal = document.getElementById('gen-time').value.trim() || '10:10';
+      const topicVal = document.getElementById('gen-topic').value;
+      const targetVal = getSelectedGenTargets();
+
+      const detectedSeats = extractSeatNumbers(seatVal + ' ' + rawSummaryVal);
+
+      if (detectedSeats.length === 0) {
+        alert('請輸入有效的學生座號或含有座號筆記！');
+        return;
+      }
+
+      let monthKey = '2026年09月';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length >= 2) {
+          monthKey = `${parts[0]}年${parts[1]}月`;
+        }
+      }
+
+      if (!recordsData[monthKey]) {
+        recordsData[monthKey] = [];
+      }
+
+      let datetimeDisplay = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          datetimeDisplay = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)} ${timeVal}`;
+        }
+      }
+
+      const allDetectedStudents = detectedSeats.map(stSeat => students.find(s => s.座號 === stSeat)).filter(Boolean);
+      const jointNamesStr = allDetectedStudents.map(s => s.姓名).join('、');
+
+      let addedCount = 0;
+
+      allDetectedStudents.forEach(st => {
+        let noteContext = rawSummaryVal;
+        if (allDetectedStudents.length > 1) {
+          noteContext = `與【${jointNamesStr}】共同參與${topicVal}。${rawSummaryVal}`;
+        }
+
+        const summaryVal = polishCounselingText(noteContext, st.姓名, topicVal, targetVal);
+
+        const newId = `rec-${Date.now()}-${st.座號}`;
+        const newRecord = {
+          id: newId,
+          no: String(recordsData[monthKey].length + 1),
+          date: dateVal,
+          time: timeVal,
+          datetime_display: datetimeDisplay,
+          seat: st.座號,
+          name: st.姓名,
+          target: targetVal,
+          topic: topicVal,
+          summary: summaryVal
+        };
+
+        recordsData[monthKey].push(newRecord);
+        lastAddedRowId = newId;
+        addedCount++;
+      });
+
+      recordsData[monthKey].forEach((r, idx) => {
+        r.no = String(idx + 1);
+      });
+
+      document.getElementById('gen-seat').value = '';
+      document.getElementById('gen-name').value = '';
+      document.getElementById('gen-summary').value = '';
+
+      const fb = document.getElementById('add-feedback');
+      const fbText = document.getElementById('feedback-text');
+      if (fb && fbText) {
+        fbText.textContent = `✅ 已成功為 ${addedCount} 位學生（${jointNamesStr}）自動生成面談與聯絡家長紀錄！`;
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 5000);
+      }
+
+      renderPages();
+    }
+
+    
+    function switchGenTab(mode) {
+      const singleBtn = document.getElementById('tab-btn-single');
+      const batchBtn = document.getElementById('tab-btn-batch');
+      const batchPanel = document.getElementById('gen-panel-batch');
+
+      if (mode === 'batch') {
+        singleBtn.className = "px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-800 rounded-t-lg";
+        batchBtn.className = "px-4 py-2 border-b-2 border-blue-600 text-blue-900 bg-blue-100 rounded-t-lg font-bold";
+        batchPanel.classList.remove('hidden');
+      } else {
+        singleBtn.className = "px-4 py-2 border-b-2 border-emerald-600 text-emerald-800 bg-emerald-50 rounded-t-lg font-bold";
+        batchBtn.className = "px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-800 rounded-t-lg";
+        batchPanel.classList.add('hidden');
+      }
+    }
+
+    function onBatchSeatInput(rowIdx) {
+      const seatInput = document.getElementById(`batch-seat-${rowIdx}`);
+      const val = seatInput ? seatInput.value.trim() : '';
+      const nameInput = document.getElementById(`batch-name-${rowIdx}`);
+
+      if (!val) {
+        if (nameInput) nameInput.value = '';
+        return;
+      }
+
+      const seat = val.padStart(2, '0');
+      let st = students.find(s => s.座號 === seat);
+      if (!st) {
+        st = students.find(s => parseInt(s.座號, 10) === parseInt(val, 10));
+      }
+
+      if (nameInput) {
+        nameInput.value = st ? st.姓名 : '';
+      }
+    }
+
+    function fillBatchDemoData() {
+      const demoTopics = ["常規問題", "例行晤談", "人際關係", "課業學習", "學生請假", "服裝儀容", "例行晤談", "課業學習", "常規問題"];
+      const demoTargets = ["面談(學生)", "電聯家長", "家訪", "面談(家長)", "面談(學生)", "面談(學生)", "電聯家長", "面談(學生)", "家訪"];
+      const demoNotes = ["上課專注度需提醒", "關心近期學習表現", "指導幹部溝通與相處", "段考複習衝刺指導", "請病假與關懷作息", "服裝儀容規範叮嚀", "性向與升學輔導", "作業缺繳提醒與補交", "課堂常規提醒"];
+
+      for (let i = 1; i <= 9; i++) {
+        const seatStr = String(i).padStart(2, '0');
+        const seatInput = document.getElementById(`batch-seat-${i}`);
+        if (seatInput) {
+          seatInput.value = seatStr;
+          onBatchSeatInput(i);
+        }
+        const topicSelect = document.getElementById(`batch-topic-${i}`);
+        if (topicSelect) topicSelect.value = demoTopics[i-1];
+        
+        const targetSelect = document.getElementById(`batch-target-${i}`);
+        if (targetSelect) targetSelect.value = demoTargets[i-1];
+
+        const summaryInput = document.getElementById(`batch-summary-${i}`);
+        if (summaryInput) summaryInput.value = demoNotes[i-1];
+      }
+    }
+
+    function submitBatch9Records() {
+      const dateVal = document.getElementById('batch-date').value || "2026-09-18";
+      let monthKey = '2026年09月';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length >= 2) {
+          monthKey = `${parts[0]}年${parts[1]}月`;
+        }
+      }
+
+      if (!recordsData[monthKey]) {
+        recordsData[monthKey] = [];
+      }
+
+      let datetimeDisplay = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          datetimeDisplay = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)} 10:10`;
+        }
+      }
+
+      let addedCount = 0;
+
+      for (let i = 1; i <= 9; i++) {
+        const seatVal = document.getElementById(`batch-seat-${i}`).value.trim();
+        const nameVal = document.getElementById(`batch-name-${i}`).value.trim();
+        const topicVal = document.getElementById(`batch-topic-${i}`).value;
+        const targetVal = document.getElementById(`batch-target-${i}`).value;
+        let summaryVal = document.getElementById(`batch-summary-${i}`).value.trim();
+
+        if (!seatVal || !nameVal) continue;
+
+        const polishedSummary = polishCounselingText(summaryVal, nameVal, topicVal, targetVal);
+
+        const newRecord = {
+          id: `rec-batch-${Date.now()}-${i}`,
+          no: String(recordsData[monthKey].length + 1),
+          date: dateVal,
+          time: '10:10',
+          datetime_display: datetimeDisplay,
+          seat: seatVal,
+          name: nameVal,
+          target: targetVal,
+          topic: topicVal,
+          summary: polishedSummary
+        };
+
+        recordsData[monthKey].push(newRecord);
+        addedCount++;
+      }
+
+      if (addedCount === 0) {
+        alert('請至少輸入一列有效的學生座號！');
+        return;
+      }
+
+      recordsData[monthKey].forEach((r, idx) => {
+        r.no = String(idx + 1);
+      });
+
+      // Clear batch input rows
+      for (let i = 1; i <= 9; i++) {
+        document.getElementById(`batch-seat-${i}`).value = '';
+        document.getElementById(`batch-name-${i}`).value = '';
+        document.getElementById(`batch-summary-${i}`).value = '';
+      }
+
+      const fb = document.getElementById('add-feedback');
+      const fbText = document.getElementById('feedback-text');
+      if (fb && fbText) {
+        fbText.textContent = `🚀 已成功一次新增 ${addedCount} 筆紀錄至【${monthKey}】檔！自動累加序號並排版滿頁 A4。`;
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 5000);
+      }
+
+      renderPages();
+    }
+
+    function autoLookupStudent() {
+      const seatInput = document.getElementById('gen-seat');
+      const val = seatInput ? seatInput.value.trim() : '';
+      const summaryTextarea = document.getElementById('gen-summary');
+      const summaryText = summaryTextarea ? summaryTextarea.value.trim() : '';
+
+      const detectedSeats = extractSeatNumbers(val + ' ' + summaryText);
+      const nameInput = document.getElementById('gen-name');
+
+      if (detectedSeats.length > 1) {
+        const names = detectedSeats.map(stSeat => {
+          const st = students.find(s => s.座號 === stSeat);
+          return st ? `${stSeat}${st.姓名}` : stSeat;
+        });
+        if (nameInput) nameInput.value = `${names.join(', ')} (共${detectedSeats.length}位)`;
+      } else if (detectedSeats.length === 1) {
+        const st = students.find(s => s.座號 === detectedSeats[0]);
+        if (nameInput) nameInput.value = st ? st.姓名 : '';
+      } else {
+        if (nameInput) nameInput.value = '';
+      }
+    }
+
+    function triggerPolishCurrent() {
+      const seatVal = document.getElementById('gen-seat').value.trim();
+      let name = document.getElementById('gen-name').value.trim();
+      if (!name && seatVal) {
+        let seat = seatVal.padStart(2, '0');
+        let st = students.find(s => s.座號 === seat);
+        if (st) name = st.姓名;
+      }
+      if (!name) name = "學生";
+
+      const topic = document.getElementById('gen-topic').value;
+      const target = document.getElementById('gen-target').value;
+      const summaryTextarea = document.getElementById('gen-summary');
+      
+      summaryTextarea.value = polishCounselingText(summaryTextarea.value, name, topic, target);
+    }
+
+    function triggerPolishEditModal() {
+      const name = document.getElementById('edit-name').value.trim() || "學生";
+      const topic = document.getElementById('edit-topic').value;
+      const target = document.getElementById('edit-target').value;
+      const editSummaryTextarea = document.getElementById('edit-summary');
+
+      editSummaryTextarea.value = polishCounselingText(editSummaryTextarea.value, name, topic, target);
+    }
+
+    function polishCounselingText(rawText, name, topic, target) {
+      let cleanInput = (rawText || "").trim();
+      let sname = name || "學生";
+      let topicStr = topic || "例行晤談";
+
+      if (!cleanInput) {
+        if (topicStr === "課業學習") {
+          return `關心與輔導【${sname}】課業學習與作業狀況，導師進行個別指導，學生表示配合改善。`;
+        } else if (topicStr === "常規問題") {
+          return `關心【${sname}】生活常規與品德表現，導師進行指導告誡，學生虛心接受並承諾改進。`;
+        } else if (topicStr === "人際關係") {
+          return `輔導【${sname}】同儕溝通與相處問題，引導理性表達，學生同意和睦相處。`;
+        } else if (topicStr === "學生請假") {
+          return `確認【${sname}】請假事宜與出勤狀況，導師給予關懷並叮嚀課業補繳進度。`;
+        } else if (topicStr === "服裝儀容") {
+          return `提醒【${sname}】遵守學校服儀規範，學生虛心接受導師指導並隨即配合整頓。`;
+        } else {
+          return `與【${sname}】進行${topicStr}個別晤談，導師進行關懷指導，輔導互動良好。`;
+        }
+      }
+
+      let input_text = cleanInput;
+      input_text = input_text.replace(/^與【.*?】共同參與.*?[。；;\s]*/, '');
+
+      if (input_text.length <= 90) {
+        let res = input_text;
+        if (!res.includes(sname) && !res.startsWith("【")) {
+          res = `【${sname}】${res}`;
+        }
+        if (!/[。！？.!?]$/.test(res)) {
+          res += "。";
+        }
+        return res;
+      }
+
+      let event = "";
+      if (/講髒話|髒話|不當言語|粗口|罵人/.test(input_text)) {
+        event = "學生在校使用不當言語，學務處依規擬記警告處分。";
+      } else if (/打架|爭執|口角|吵架|衝突/.test(input_text)) {
+        event = "學生發生同儕爭執與口角衝突事宜。";
+      } else if (/作業|缺交|未交|成績|考不及格/.test(input_text)) {
+        event = "學生課業學習與作業繳交狀況不佳。";
+      } else if (/遲到|曠課|請假|出勤|作息/.test(input_text)) {
+        event = "確認學生出勤與課務相關事宜。";
+      } else {
+        let firstSent = input_text.split(/[。！？\n]/)[0];
+        if (firstSent.length > 40) firstSent = firstSent.substring(0, 40) + "…";
+        event = `${firstSent}。`;
+      }
+
+      let action = "";
+      if (/家長|父母|電聯|電話|說服/.test(input_text)) {
+        if (/同意|配合|懲處|處分|警告/.test(input_text)) {
+          action = "導師告誡學生並聯絡家長溝通說明，家長同意配合學校處分與督導。";
+        } else {
+          action = "導師進行叮嚀告誡並聯絡家長溝通說明狀況。";
+        }
+      } else {
+        action = "導師進行個別叮嚀與告誡輔導。";
+      }
+
+      let followup = "後續持續觀察學生狀況與生活常規。";
+
+      return `【${sname}】${event}${action}${followup}`;
+    }
+
+    function deleteRecord(monthKey, recordIndex) {
+      if (confirm('確定要刪除這筆紀錄嗎？')) {
+        recordsData[monthKey].splice(recordIndex, 1);
+        recordsData[monthKey].forEach((r, idx) => {
+          r.no = String(idx + 1);
+        });
+        renderPages();
+      }
+    }
+
+    function filterMonthView() {
+      renderPages();
+    }
+
+    
+    function exportToExcel() {
+      const selectEl = document.getElementById('month-select');
+      const currentMonth = selectEl ? selectEl.value : 'ALL';
+      let records = [];
+
+      if (currentMonth === 'ALL') {
+        Object.keys(recordsData).sort().forEach(m => {
+          (recordsData[m] || []).forEach(r => {
+            records.push({ 月份檔名: m, ...r });
+          });
+        });
+      } else {
+        records = (recordsData[currentMonth] || []).map(r => ({ 月份檔名: currentMonth, ...r }));
+      }
+
+      if (records.length === 0) {
+        alert('目前沒有紀錄可供匯出！');
+        return;
+      }
+
+      const exportData = records.map((r, idx) => {
+        let cleanTarget = r.target || '';
+        if (typeof formatTargetMethodLine === 'function') {
+          cleanTarget = formatTargetMethodLine(r.target).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        }
+
+        return {
+          "序號": r.no || (idx + 1),
+          "月份": r.月份檔名 || currentMonth,
+          "日期與時間": r.datetime_display || ((r.date || '') + ' ' + (r.time || '')),
+          "座號": r.seat || '',
+          "學生姓名": r.name || '',
+          "輔導主題": r.topic || '',
+          "面談與聯絡方式": cleanTarget,
+          "輔導紀錄與具體事實細節": r.summary || ''
+        };
+      });
+
+      if (typeof XLSX === 'undefined') {
+        alert('Excel 匯出元件載入中，請稍後再試一次！');
+        return;
+      }
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      ws['!cols'] = [
+        { wch: 8 },  // 序號
+        { wch: 12 }, // 月份
+        { wch: 16 }, // 日期與時間
+        { wch: 8 },  // 座號
+        { wch: 12 }, // 學生姓名
+        { wch: 14 }, // 輔導主題
+        { wch: 30 }, // 面談與聯絡方式
+        { wch: 70 }  // 輔導紀錄
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "班級經營紀錄");
+
+      const fileName = `班級經營與輔導紀錄本_${currentMonth === 'ALL' ? '全部月份' : currentMonth}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function exportToWord() {
+      const selectEl = document.getElementById('month-select');
+      const currentMonth = selectEl ? selectEl.value : 'ALL';
+      let recordsByMonth = {};
+
+      if (currentMonth === 'ALL') {
+        recordsByMonth = recordsData;
+      } else {
+        if (recordsData[currentMonth]) {
+          recordsByMonth[currentMonth] = recordsData[currentMonth];
+        }
+      }
+
+      let totalCount = 0;
+      Object.values(recordsByMonth).forEach(arr => totalCount += arr.length);
+
+      if (totalCount === 0) {
+        alert('目前沒有紀錄可供匯出！');
+        return;
+      }
+
+      let htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>班級經營紀錄本</title>
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>100</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            @page {
+              size: 210mm 297mm;
+              margin: 15mm 15mm 15mm 15mm;
+            }
+            body {
+              font-family: "PMingLiU", "MingLiU", "DFKai-SB", "BiauKai", serif;
+              font-size: 11pt;
+            }
+            h2 {
+              text-align: center;
+              font-size: 16pt;
+              font-weight: bold;
+              margin-bottom: 4px;
+            }
+            p.subtitle {
+              text-align: center;
+              font-size: 11pt;
+              margin-bottom: 12px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+              table-layout: fixed;
+            }
+            th, td {
+              border: 1px solid #000000;
+              padding: 6px 6px;
+              font-size: 10pt;
+              vertical-align: middle;
+              word-wrap: break-word;
+            }
+            th {
+              background-color: #f2f2f2;
+              font-weight: bold;
+              text-align: center;
+            }
+            .page-break {
+              page-break-after: always;
+            }
+          </style>
+        </head>
+        <body>
+      `;
+
+      const sortedMonths = Object.keys(recordsByMonth).sort();
+
+      sortedMonths.forEach((mKey, monthIdx) => {
+        const list = recordsByMonth[mKey];
+        if (!list || list.length === 0) return;
+
+        htmlContent += `
+          <h2>六和高級中學國中部 - 班級經營紀錄本</h2>
+          <p class="subtitle">紀錄月份：<b>${mKey}</b> （共 ${list.length} 筆紀錄）</p>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 6%;">序號</th>
+                <th style="width: 12%;">日期/時間</th>
+                <th style="width: 8%;">座號</th>
+                <th style="width: 12%;">姓名</th>
+                <th style="width: 28%;">輔導/連絡家長對象與方式</th>
+                <th style="width: 34%;">輔導與紀錄內涵簡述</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        list.forEach((r, idx) => {
+          let targetText = formatTargetMethodLine(r.target);
+
+          htmlContent += `
+            <tr>
+              <td style="text-align: center;">${r.no || (idx + 1)}</td>
+              <td style="text-align: center;">${r.datetime_display || ((r.date || '') + ' ' + (r.time || ''))}</td>
+              <td style="text-align: center;">${r.seat || ''}</td>
+              <td style="text-align: center;"><b>${r.name || ''}</b></td>
+              <td>${targetText}</td>
+              <td>${r.summary || ''}</td>
+            </tr>
+          `;
+        });
+
+        htmlContent += `
+            </tbody>
+          </table>
+        `;
+
+        if (monthIdx < sortedMonths.length - 1) {
+          htmlContent += `<div class="page-break"></div>`;
+        }
+      });
+
+      htmlContent += `
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob(['\ufeff', htmlContent], {
+        type: 'application/msword;charset=utf-8'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `班級經營與輔導紀錄本_${currentMonth === 'ALL' ? '全部月份' : currentMonth}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function renderPages() {
+      const container = document.getElementById('pages-container');
+      container.innerHTML = '';
+
+      const filterVal = document.getElementById('view-month-filter') ? document.getElementById('view-month-filter').value : 'ALL';
+
+      Object.keys(recordsData).forEach(month => {
+        if (filterVal !== 'ALL' && filterVal !== month) {
+          return;
+        }
+
+        const recs = recordsData[month];
+        const pageSize = 9; // Strictly max 9 records per A4 page
+        const totalPages = Math.max(1, Math.ceil(recs.length / pageSize));
+
+        // Format Month Header like "9月份班級紀錄"
+        const monthNumMatch = month.match(/(\d+)月/);
+        const monthNumStr = monthNumMatch ? parseInt(monthNumMatch[1], 10) + '月份' : month;
+
+        for (let p = 0; p < totalPages; p++) {
+          const pageRecs = recs.slice(p * pageSize, (p + 1) * pageSize);
+          
+          const pageDiv = document.createElement('div');
+          pageDiv.className = 'a4-page print-page border border-gray-400';
+          
+          let rowsHtml = '';
+          pageRecs.forEach((r, idxInPage) => {
+            const globalIndex = p * pageSize + idxInPage;
+            
+            // Generate exact checkboxes matching user photo:
+            // Line 1: ☐面談(☐學生 ☐家長)  ☐電聯家長  ☐家訪  ☐其他：
+            const targetMethodLine = formatTargetMethodLine(r.target);
+
+            // Line 2: 晤談主題：☐例行晤談  ☐常規問題  ☐人際關係  ☐課業學習
+            //                  ☐學生請假  ☐服裝儀容  ☐其他_______________
+            const allTopicNames = ["例行晤談", "常規問題", "人際關係", "課業學習", "學生請假", "服裝儀容", "其他"];
+            const topicsLine = allTopicNames.map(tp => `<span class="inline-block mr-2">${tp === r.topic ? '☑' : '☐'}${tp}</span>`).join('');
+
+            const isNew = r.id === lastAddedRowId;
+            const rowIdAttr = r.id ? `id="${r.id}"` : '';
+
+            rowsHtml += `
+              <tr ${rowIdAttr} style="height: 27mm;" class="${isNew ? 'row-newly-added font-semibold' : ''}">
+                <!-- Col 1: 序號 -->
+                <td class="text-center font-mono font-bold text-sm">
+                  ${r.no}
+                  <div class="no-print mt-1 space-x-1"><button onclick="openEditModal('${month}', ${globalIndex})" class="px-1 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-[10px] font-bold" title="修改此筆紀錄">✏️修改</button><button onclick="deleteRecord('${month}', ${globalIndex})" class="px-1 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 rounded text-[10px] font-bold" title="刪除此筆紀錄">🗑️刪除</button></div>
+                </td>
+                <!-- Col 2: 學生姓名 -->
+                <td class="text-center font-bold text-sm text-gray-900 editable-cell" contenteditable="true">${r.name}</td>
+                <!-- Col 3: 時間 -->
+                <td class="text-center font-mono text-xs editable-cell" contenteditable="true">${r.datetime_display || r.date + ' ' + r.time}</td>
+                <!-- Col 4: 晤談方式暨聯絡摘要 (100% 紙本樣式結構) -->
+                <td class="text-xs p-2 text-left leading-relaxed">
+                  <!-- Row 1: 聯絡方式與面談對象 -->
+                  <div class="border-b border-gray-400 pb-1 mb-1 font-mono text-[11px]">
+                    ${targetMethodLine}
+                  </div>
+                  <!-- Row 2: 晤談主題 -->
+                  <div class="border-b border-gray-400 pb-1 mb-1 text-[11px]">
+                    <span class="font-bold">晤談主題：</span>${topicsLine}
+                  </div>
+                  <!-- Row 3: 晤談內容 -->
+                  <div class="editable-cell pt-0.5 text-[11px]" contenteditable="true" title="點擊線上編修內容">
+                    <span class="font-bold">晤談內容：</span>${r.summary}
+                  </div>
+                </td>
+              </tr>
+            `;
+          });
+
+          pageDiv.innerHTML = `
+            <!-- Top Header matching user sample photo -->
+            <div class="text-center mb-3">
+              <h1 class="text-2xl font-bold tracking-wider text-black border-b-2 border-black pb-1 inline-block px-8">${monthNumStr}班級紀錄</h1>
+              <div class="no-print text-xs text-gray-500 mt-1">學校：${config.school_name} | 班級：${config.grade_class} | 導師：${config.teacher_name} | 頁次：${p+1} / ${totalPages}</div>
+            </div>
+
+            <!-- Main Table matching user sample photo -->
+            <table class="border-2 border-black">
+              <thead>
+                <tr class="border-b-2 border-black">
+                  <th style="width: 8%;" class="text-center">序號</th>
+                  <th style="width: 14%;" class="text-center">學生姓名</th>
+                  <th style="width: 13%;" class="text-center">時間</th>
+                  <th style="width: 65%;" class="text-center">晤談方式暨聯絡摘要</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <div class="mt-2 pt-1 text-[10px] text-gray-500 flex justify-between">
+              <span>註：本表排版100%對齊學校標準紙本欄位樣式，單頁容量極限 9 筆（A4 直印）。內容可點擊線上編修。</span>
+              <span>導師簽章：__________________</span>
+            </div>
+          `;
+
+          container.appendChild(pageDiv);
+        }
+      });
+    }
+
+    // Initial render
+    renderPages();
+  </script>
+</body>
+</html>
