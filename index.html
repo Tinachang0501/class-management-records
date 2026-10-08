@@ -1,0 +1,2776 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>六和高級中學國中部 - 班級經營紀錄本 (A4紙本精確樣式對齊版)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      [contenteditable="true"] {
+        border: none !important;
+        background: transparent !important;
+        outline: none !important;
+      }
+    }
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm 10mm;
+      background: white;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      box-sizing: border-box;
+      position: relative;
+      font-family: "PMingLiU", "MingLiU", "DFKai-SB", "BiauKai", serif;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1.5px solid #000;
+      padding: 3px 5px;
+      font-size: 11px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    th {
+      background-color: #ffffff;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .editable-cell {
+      transition: background-color 0.2s;
+    }
+    .editable-cell:hover {
+      background-color: #fef08a;
+      cursor: text;
+    }
+    .editable-cell:focus {
+      background-color: #ffffff;
+      outline: 2px solid #2563eb;
+      box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
+    }
+    @keyframes highlight-fade {
+      0% { background-color: #fef08a; }
+      100% { background-color: transparent; }
+    }
+    .row-newly-added {
+      animation: highlight-fade 3s ease-out;
+    }
+  </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased p-4">
+
+  <!-- Control Header (No Print) -->
+
+    <!-- Edit Record Modal (No Print) -->
+    <div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-blue-900 text-base">✏️ 編輯晤談紀錄 (需保留客觀對象與事件事實)</h3>
+          <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
+        </div>
+        <input type="hidden" id="edit-month-key">
+        <input type="hidden" id="edit-rec-idx">
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">📅 日期 (如: 2026-09-18)</label>
+            <input type="date" id="edit-date" class="w-full text-xs border rounded p-1.5 font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">⏰ 時間 (時:分)</label>
+            <input type="text" id="edit-time" class="w-full text-xs border rounded p-1.5 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">👤 學生座號</label>
+            <input type="text" id="edit-seat" oninput="onEditSeatInput(this.value)" class="w-full text-xs border rounded p-1.5 font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">學生姓名</label>
+            <input type="text" id="edit-name" readonly class="w-full text-xs border rounded p-1.5 bg-gray-100 font-bold text-blue-900">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">🎯 晤談對象與方式</label>
+            
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-gray-700">🎯 晤談對象與方式 (可複選)</label>
+            <div class="flex flex-wrap gap-2 text-xs border rounded p-1.5 bg-white">
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-stu" value="面談(學生)"> 面談(學生)</label>
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-parent" value="面談(家長)"> 面談(家長)</label>
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-phone" value="電聯家長"> 電聯家長</label>
+              <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" id="edit-chk-home" value="家訪"> 家訪</label>
+            </div>
+            <input type="text" id="edit-target-other" placeholder="手動修改/其他說明(例:校內面談)..." class="w-full text-xs border rounded p-1 font-sans mt-1">
+          </div>
+
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">📌 晤談主題/類別</label>
+            <select id="edit-topic" class="w-full text-xs border rounded p-1.5 bg-white">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1 flex justify-between items-center">
+          <span>📝 晤談內容 (需保留客觀對象、客觀事件與處理對策)</span>
+          <button type="button" onclick="triggerPolishEditModal()" class="text-xs px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-semibold shadow">⚡ AI 潤飾</button>
+        </label>
+          <textarea id="edit-summary" rows="4" class="w-full text-xs border border-blue-300 rounded p-2 leading-relaxed focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+
+        <div class="flex justify-between items-center pt-2 border-t">
+          <button type="button" onclick="deleteRecordFromModal()" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded flex items-center gap-1">🗑️ 刪除此筆紀錄</button>
+          <div class="flex gap-2">
+          <button onclick="closeEditModal()" class="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded">取消</button>
+          <button onclick="saveEditRecord()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded">💾 儲存修改</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div class="no-print max-w-6xl mx-auto mb-6 bg-white rounded-xl shadow p-5 border border-gray-200">
+    <div class="flex flex-wrap justify-between items-center border-b pb-4 mb-4">
+      <div>
+        <h1 class="text-xl font-bold text-blue-900">班級經營紀錄本 - 紙本對齊樣式 (一頁最多9筆 A4)</h1>
+        <p class="text-xs text-gray-600 mt-1">學校：六和高級中學國中部 | 班級：九年五班 | 導師：張慧玲</p>
+        <div class="mt-2 text-xs font-semibold bg-amber-50 text-amber-900 p-2 rounded border border-amber-200">
+          <strong>對齊欄位樣式：</strong> 
+          【序號】 | 【學生姓名】 | 【時間】 | 【晤談方式暨聯絡摘要】 (含面談/電聯/家訪/主題與晤談內容)
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          一鍵列印 A4
+        </button>
+        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+          📊 匯出 Excel
+        </button>
+        <button onclick="exportToWord()" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v14a2 2 0 01-2 2z"></path></svg>
+          📝 匯出 Word
+        </button>
+        <button onclick="openGoogleSheetModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          🔄 連動 Google 試算表
+        </button>
+
+
+      </div>
+    </div>
+
+    <!-- Instructions Banner -->
+    <div class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-xs text-blue-900 flex justify-between items-center">
+      <div>
+        <strong>✏️ 紙本樣式對齊說明：</strong> 
+        本介面排版已100%精確對齊您提供的紙本圖樣！在快捷生成器輸入座號即可連續累積新增，每頁固定最多9筆 A4。
+      </div>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div id="add-feedback" class="hidden mb-4 bg-emerald-100 border-l-4 border-emerald-500 p-3 rounded text-xs font-bold text-emerald-900 transition flex justify-between items-center">
+      <span id="feedback-text"></span>
+      <span class="text-xs text-emerald-700 font-normal">（輸入框已自動清空，可直接繼續輸入下一個座號）</span>
+    </div>
+
+    <!-- Interactive Generator Form with Single & Batch Modes -->
+
+    <!-- Mode Switcher Tabs -->
+    <div class="flex border-b border-gray-300 mb-3 text-xs font-bold">
+      <button type="button" id="tab-btn-single" onclick="switchGenTab('single')" class="px-4 py-2 border-b-2 border-emerald-600 text-emerald-800 bg-emerald-50 rounded-t-lg">
+        ⚡ 單筆快捷輸入
+      </button>
+      <button type="button" id="tab-btn-batch" onclick="switchGenTab('batch')" class="px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-800 rounded-t-lg">
+        🚀 批次一次輸入 9 筆 (滿頁 A4 專用，自動連動座號與 30-50 字生成)
+      </button>
+    </div>
+
+    <!-- Batch 9 Generator Panel -->
+    <div id="gen-panel-batch" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-3">
+      <div class="flex flex-wrap justify-between items-center border-b border-blue-200 pb-2">
+        <div>
+          <h2 class="text-sm font-bold text-blue-900 flex items-center gap-1">
+            🚀 批次一次輸入 9 筆紀錄 (剛好滿頁 A4 直印，序號 1~9 自動累加)
+          </h2>
+          <p class="text-[11px] text-blue-700 mt-0.5">輸入座號自動連動姓名，填寫簡語一鍵自動生成約 30~50 字專業導師輔導紀錄！</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-blue-900">📅 統一日期：</label>
+          <input type="date" id="batch-date" value="2026-09-18" class="text-xs border border-blue-300 rounded p-1 bg-white font-bold font-mono">
+          <button type="button" onclick="fillBatchDemoData()" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-bold shadow">
+            🎲 帶入前 9 位學生測試範例
+          </button>
+        </div>
+      </div>
+
+      <!-- 9 Row Inputs Grid -->
+      <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#1</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-1" placeholder="座號(例:01)" oninput="onBatchSeatInput(1)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-1" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-1" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-1" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-1" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#2</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-2" placeholder="座號(例:02)" oninput="onBatchSeatInput(2)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-2" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-2" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-2" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-2" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#3</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-3" placeholder="座號(例:03)" oninput="onBatchSeatInput(3)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-3" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-3" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-3" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-3" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#4</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-4" placeholder="座號(例:04)" oninput="onBatchSeatInput(4)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-4" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-4" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-4" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-4" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#5</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-5" placeholder="座號(例:05)" oninput="onBatchSeatInput(5)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-5" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-5" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-5" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-5" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#6</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-6" placeholder="座號(例:06)" oninput="onBatchSeatInput(6)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-6" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-6" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-6" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-6" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#7</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-7" placeholder="座號(例:07)" oninput="onBatchSeatInput(7)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-7" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-7" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-7" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-7" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#8</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-8" placeholder="座號(例:08)" oninput="onBatchSeatInput(8)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-8" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-8" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-8" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-8" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded border border-blue-100 shadow-sm text-xs">
+          <div class="col-span-1 font-bold text-center text-blue-900">#9</div>
+          <div class="col-span-2">
+            <input type="text" id="batch-seat-9" placeholder="座號(例:09)" oninput="onBatchSeatInput(9)" class="w-full border rounded p-1 font-mono font-bold text-center focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="col-span-2">
+            <input type="text" id="batch-name-9" readonly placeholder="姓名" class="w-full border rounded p-1 bg-gray-100 text-center font-bold text-blue-900">
+          </div>
+          <div class="col-span-2">
+            <select id="batch-topic-9" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="例行晤談">例行晤談</option>
+              <option value="常規問題">常規問題</option>
+              <option value="人際關係">人際關係</option>
+              <option value="課業學習">課業學習</option>
+              <option value="學生請假">學生請假</option>
+              <option value="服裝儀容">服裝儀容</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <select id="batch-target-9" class="w-full border rounded p-1 bg-white text-[11px]">
+              <option value="面談(學生)">面談(學生)</option>
+              <option value="面談(家長)">面談(家長)</option>
+              <option value="電聯家長">電聯家長</option>
+              <option value="家訪">家訪</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <input type="text" id="batch-summary-9" placeholder="貼簡語筆記/關鍵字 (自動產30-50字)" class="w-full border rounded p-1 text-[11px]">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex justify-between items-center pt-2 border-t border-blue-200">
+        <span class="text-xs text-blue-800 font-semibold">點擊按鈕後，將一次新增 9 筆紀錄並自動生成 30~50 字內容，排版 100% 精確固定滿頁 A4。</span>
+        <button type="button" onclick="submitBatch9Records()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1">
+          🚀 一次新增 9 筆至紀錄本 (自動序號 1~9 累加滿頁)
+        </button>
+        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+          📊 匯出 Excel
+        </button>
+        <button onclick="exportToWord()" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v14a2 2 0 01-2 2z"></path></svg>
+          📝 匯出 Word
+        </button>
+        <button onclick="openGoogleSheetModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          🔄 連動 Google 試算表
+        </button>
+
+
+      </div>
+    </div>
+
+    <div id="gen-panel-single" class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+      <h2 class="text-sm font-bold text-gray-800 flex items-center gap-1">
+        ⚡ 快捷紀錄生成器 (輸入座號連動時間、姓名，點擊新增自動累積)
+      </h2>
+
+      <!-- Row 1: Date, Seat, Name, Time, Topic, Target -->
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
+        <div>
+          <label class="block text-xs font-bold text-blue-900 mb-1">📅 1. 點選日期</label>
+          <input type="date" id="gen-date" value="2026-09-18" onchange="autoLookupStudent()" class="w-full text-xs border border-blue-300 rounded p-1.5 bg-white font-mono font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">2. 輸入座號</label>
+          <input type="text" id="gen-seat" placeholder="例如: 01" oninput="autoLookupStudent()" onkeyup="if(event.key==='Enter') addRecordFromGen()" class="w-full text-xs border rounded p-1.5 bg-white font-mono font-bold focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">學生姓名</label>
+          <input type="text" id="gen-name" readonly placeholder="自動連動" class="w-full text-xs border rounded p-1.5 bg-gray-100 font-bold text-blue-900">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">時間 (時:分)</label>
+          <input type="text" id="gen-time" value="10:10" class="w-full text-xs border rounded p-1.5 bg-white font-mono">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">晤談主題</label>
+          <select id="gen-topic" onchange="autoLookupStudent()" class="w-full text-xs border rounded p-1.5 bg-white">
+            <option value="常規問題">常規問題</option>
+            <option value="例行晤談">例行晤談</option>
+            <option value="人際關係">人際關係</option>
+            <option value="課業學習">課業學習</option>
+            <option value="學生請假">學生請假</option>
+            <option value="服裝儀容">服裝儀容</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">晤談方式/對象</label>
+          
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-gray-700">晤談方式(可複選)</label>
+            <div class="flex flex-wrap gap-1.5 text-[11px] bg-white border rounded p-1">
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-stu" value="面談(學生)" checked> 面談(學生)</label>
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-parent" value="面談(家長)"> 面談(家長)</label>
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-phone" value="電聯家長"> 電聯家長</label>
+              <label class="inline-flex items-center gap-0.5 cursor-pointer"><input type="checkbox" id="gen-chk-home" value="家訪"> 家訪</label>
+            </div>
+            <input type="text" id="gen-target-other" placeholder="手動修改/自訂方式" class="w-full text-[11px] border rounded p-1">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Row 2: Generated Brief Event Summary Edit Area -->
+      <div>
+        <label class="block text-xs font-bold text-emerald-800 mb-1 flex justify-between items-center">
+          <span>✏️ 貼入簡易事件筆記（可貼入簡語，點擊按鈕自動潤飾成約30字專業文句）</span>
+          <button type="button" onclick="triggerPolishCurrent()" class="text-xs px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-semibold shadow">
+            ⚡ AI 潤飾成專業文句 (約30字)
+          </button>
+        </label>
+        <textarea id="gen-summary" rows="2" class="w-full text-xs border border-emerald-300 rounded p-2 bg-white leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="可貼入簡易筆記（例如「杜柔均上生物課干擾秩序」），點新增將自動生成約30字專業客觀導師紀錄..."></textarea>
+      </div>
+
+      <div class="flex justify-between items-center">
+        <!-- Quick Month Jumper / Filter -->
+        <div class="flex items-center gap-1 text-xs">
+          <span class="font-bold text-gray-700">檢視月份切換：</span>
+          <select id="view-month-filter" onchange="filterMonthView()" class="border rounded p-1 text-xs bg-white font-bold text-blue-900">
+            <option value="ALL">全部月份檔 (全學期61筆紀錄)</option>
+            <option value="2026年08月">2026年08月 (25筆)</option>
+            <option value="2026年09月">2026年09月 (36筆)</option>
+          </select>
+        </div>
+
+        <button type="button" onclick="addRecordFromGen()" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          新增至紀錄 (累積並自動清空輸入框)
+        </button>
+        <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+          📊 匯出 Excel
+        </button>
+        <button onclick="exportToWord()" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v14a2 2 0 01-2 2z"></path></svg>
+          📝 匯出 Word
+        </button>
+        <button onclick="openGoogleSheetModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          🔄 連動 Google 試算表
+        </button>
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- A4 Printable Pages Container -->
+  <div id="pages-container" class="max-w-4xl mx-auto"></div>
+
+  <script>
+    const students = [{"座號": "01", "姓名": "王昱婕", "性別": "女", "班級職務": "資料整理股長", "緊急聯絡人": "王爸爸", "聯絡電話": "0912-100001", "輔導重點與特殊狀況": "領導力佳，學習態度積極，性向平穩"}, {"座號": "02", "姓名": "吳思瑩", "性別": "女", "班級職務": "理化小老師", "緊急聯絡人": "吳媽媽", "聯絡電話": "0923-100002", "輔導重點與特殊狀況": "做事認真負責，與同學關係融洽"}, {"座號": "03", "姓名": "吳婕希", "性別": "女", "班級職務": "聯絡簿負責人", "緊急聯絡人": "吳爸爸", "聯絡電話": "0934-100003", "輔導重點與特殊狀況": "正義感強，維護班級秩序有條不紊"}, {"座號": "04", "姓名": "呂品妍", "性別": "女", "班級職務": "學藝股長", "緊急聯絡人": "呂媽媽", "聯絡電話": "0945-100004", "輔導重點與特殊狀況": "美術天分佳，負責黑板報與公告欄製作"}, {"座號": "05", "姓名": "巫婧", "性別": "女", "班級職務": "資訊+設備股長", "緊急聯絡人": "巫爸爸", "聯絡電話": "0956-100005", "輔導重點與特殊狀況": "打掃時間指導同學確實，服務熱忱高"}, {"座號": "06", "姓名": "林子妍", "性別": "女", "班級職務": "副風紀", "緊急聯絡人": "林媽媽", "聯絡電話": "0967-100006", "輔導重點與特殊狀況": "田徑表現佳，帶動班級體育活動氣氛"}, {"座號": "07", "姓名": "王姿甯", "性別": "女", "班級職務": "地理小老師", "緊急聯絡人": "王爸爸", "聯絡電話": "0978-100007", "輔導重點與特殊狀況": "細心謹慎，保管班費與公物維護良好"}, {"座號": "08", "姓名": "邱湘婷", "性別": "女", "班級職務": "理化小老師", "緊急聯絡人": "邱媽媽", "聯絡電話": "0989-100008", "輔導重點與特殊狀況": "熱愛閱讀，積極推廣班級圖書角借閱"}, {"座號": "09", "姓名": "姚舒晴", "性別": "女", "班級職務": "聯絡簿負責人", "緊急聯絡人": "姚爸爸", "聯絡電話": "0911-100009", "輔導重點與特殊狀況": "國文成績優異，協助老師收發作業"}, {"座號": "10", "姓名": "張力勻", "性別": "女", "班級職務": "數學小老師", "緊急聯絡人": "張媽媽", "聯絡電話": "0922-100010", "輔導重點與特殊狀況": "英文口語佳，主動輔導後進同學"}, {"座號": "11", "姓名": "張芸瑄", "性別": "女", "班級職務": "無", "緊急聯絡人": "張爸爸", "聯絡電話": "0933-100011", "輔導重點與特殊狀況": "數理邏輯強，個性內向但有耐性"}, {"座號": "12", "姓名": "莊予慈", "性別": "女", "班級職務": "總務股長", "緊急聯絡人": "莊媽媽", "聯絡電話": "0944-100012", "輔導重點與特殊狀況": "對科學實驗充滿好奇，上課發問踴躍"}, {"座號": "13", "姓名": "許孟潔", "性別": "女", "班級職務": "無", "緊急聯絡人": "許爸爸", "聯絡電話": "0955-100013", "輔導重點與特殊狀況": "歷史地理知識廣博，喜好發表見解"}, {"座號": "14", "姓名": "許祐綾", "性別": "女", "班級職務": "風紀股長", "緊急聯絡人": "許媽媽", "聯絡電話": "0966-100014", "輔導重點與特殊狀況": "活潑開朗，擅長規劃班級康樂活動"}, {"座號": "16", "姓名": "陳佑瑄", "性別": "女", "班級職務": "體育股長", "緊急聯絡人": "陳媽媽", "聯絡電話": "0988-100016", "輔導重點與特殊狀況": "專心聽講，協助維護體育器材與整隊，表現平穩"}, {"座號": "17", "姓名": "陳品蓁", "性別": "女", "班級職務": "地科小老師", "緊急聯絡人": "陳爸爸", "聯絡電話": "0919-100017", "輔導重點與特殊狀況": "文靜禮貌，作業繳交及時"}, {"座號": "18", "姓名": "楊巧瑄", "性別": "女", "班級職務": "無", "緊急聯絡人": "楊媽媽", "聯絡電話": "0928-100018", "輔導重點與特殊狀況": "熱心助人，主動維護班級環境衛生"}, {"座號": "19", "姓名": "楊茗棋", "性別": "女", "班級職務": "副班長", "緊急聯絡人": "楊爸爸", "聯絡電話": "0937-100019", "輔導重點與特殊狀況": "個性沉穩，文章寫作能力突出"}, {"座號": "20", "姓名": "鄒昕妤", "性別": "女", "班級職務": "國文小老師", "緊急聯絡人": "鄒媽媽", "聯絡電話": "0946-100020", "輔導重點與特殊狀況": "具同理心，人際關係良好"}, {"座號": "21", "姓名": "魏愉宣", "性別": "女", "班級職務": "地科小老師", "緊急聯絡人": "魏爸爸", "聯絡電話": "0955-100021", "輔導重點與特殊狀況": "課業態度積極，自主學習能力強"}, {"座號": "22", "姓名": "王宥仁", "性別": "男", "班級職務": "無", "緊急聯絡人": "王媽媽", "聯絡電話": "0964-100022", "輔導重點與特殊狀況": "反應敏捷，專注力佳"}, {"座號": "23", "姓名": "王柏翰", "性別": "男", "班級職務": "無", "緊急聯絡人": "王爸爸", "聯絡電話": "0973-100023", "輔導重點與特殊狀況": "數理天分好，同儕互動融洽"}, {"座號": "24", "姓名": "吳毅軒", "性別": "男", "班級職務": "鎖門負責人", "緊急聯絡人": "吳媽媽", "聯絡電話": "0982-100024", "輔導重點與特殊狀況": "體育表現優異，團隊合作精神佳"}, {"座號": "25", "姓名": "呂尚紘", "性別": "男", "班級職務": "班長", "緊急聯絡人": "呂爸爸", "聯絡電話": "0913-100025", "輔導重點與特殊狀況": "領導能力強，熱心公務，打掃踏實"}, {"座號": "26", "姓名": "李權紘", "性別": "男", "班級職務": "公民小老師", "緊急聯絡人": "李媽媽", "聯絡電話": "0924-100026", "輔導重點與特殊狀況": "對自然科學具濃厚興趣"}, {"座號": "27", "姓名": "杜彥均", "性別": "男", "班級職務": "無", "緊急聯絡人": "杜爸爸", "聯絡電話": "0935-100027", "輔導重點與特殊狀況": "思考靈活，學習動機強"}, {"座號": "28", "姓名": "邱奕恩", "性別": "男", "班級職務": "無", "緊急聯絡人": "邱媽媽", "聯絡電話": "0946-100028", "輔導重點與特殊狀況": "禮貌周到，尊敬師長"}, {"座號": "29", "姓名": "邱顗玹", "性別": "男", "班級職務": "無", "緊急聯絡人": "邱爸爸", "聯絡電話": "0957-100029", "輔導重點與特殊狀況": "樂觀進取，人緣極佳"}, {"座號": "30", "姓名": "邱顯亦", "性別": "男", "班級職務": "無", "緊急聯絡人": "邱媽媽", "聯絡電話": "0968-100030", "輔導重點與特殊狀況": "做事沉穩，遵守校規"}, {"座號": "31", "姓名": "姜芃睿", "性別": "男", "班級職務": "輔導股長", "緊急聯絡人": "姜爸爸", "聯絡電話": "0912-100031", "輔導重點與特殊狀況": "對程式設計與資訊充滿興趣"}, {"座號": "32", "姓名": "洪鼎祐", "性別": "男", "班級職務": "環保股長(內)", "緊急聯絡人": "洪媽媽", "聯絡電話": "0923-100032", "輔導重點與特殊狀況": "課堂參與度高，發問踴躍"}, {"座號": "33", "姓名": "秦湘宏", "性別": "男", "班級職務": "衛生股長(外)", "緊急聯絡人": "秦爸爸", "聯絡電話": "0934-100033", "輔導重點與特殊狀況": "對歷史地理通識知識豐富"}, {"座號": "34", "姓名": "張永謙", "性別": "男", "班級職務": "無", "緊急聯絡人": "張媽媽", "聯絡電話": "0945-100034", "輔導重點與特殊狀況": "性格開朗，團隊融洽"}, {"座號": "35", "姓名": "曹泳釤", "性別": "男", "班級職務": "無", "緊急聯絡人": "曹爸爸", "聯絡電話": "0956-100035", "輔導重點與特殊狀況": "游泳與體育擅長"}, {"座號": "36", "姓名": "郭承易", "性別": "男", "班級職務": "無", "緊急聯絡人": "郭媽媽", "聯絡電話": "0967-100036", "輔導重點與特殊狀況": "學習積極，態度端正"}, {"座號": "37", "姓名": "陳晏叡", "性別": "男", "班級職務": "無", "緊急聯絡人": "陳爸爸", "聯絡電話": "0978-100037", "輔導重點與特殊狀況": "細心負責，個性溫和"}, {"座號": "38", "姓名": "陳駿威", "性別": "男", "班級職務": "無", "緊急聯絡人": "陳媽媽", "聯絡電話": "0989-100038", "輔導重點與特殊狀況": "熱心班級事物，人際互動佳"}, {"座號": "39", "姓名": "黃品睿", "性別": "男", "班級職務": "作文小老師", "緊急聯絡人": "黃爸爸", "聯絡電話": "0911-100039", "輔導重點與特殊狀況": "數理邏輯強，思考敏捷"}, {"座號": "40", "姓名": "廖禾澄", "性別": "男", "班級職務": "用餐管理股長", "緊急聯絡人": "廖媽媽", "聯絡電話": "0922-100040", "輔導重點與特殊狀況": "愛護公物，打掃認真"}, {"座號": "41", "姓名": "劉宗權", "性別": "男", "班級職務": "歷史小老師", "緊急聯絡人": "劉爸爸", "聯絡電話": "0933-100041", "輔導重點與特殊狀況": "學習穩定，態度謙遜"}, {"座號": "42", "姓名": "蔡秉澂", "性別": "男", "班級職務": "無", "緊急聯絡人": "蔡媽媽", "聯絡電話": "0944-100042", "輔導重點與特殊狀況": "積極參與同儕討論與活動"}, {"座號": "43", "姓名": "盧永翔", "性別": "男", "班級職務": "圖書股長", "緊急聯絡人": "盧爸爸", "聯絡電話": "0955-100043", "輔導重點與特殊狀況": "樂觀向上，適應力強"}, {"座號": "44", "姓名": "謝宥晨", "性別": "男", "班級職務": "無", "緊急聯絡人": "謝媽媽", "聯絡電話": "0966-100044", "輔導重點與特殊狀況": "尊師重道，守時守紀"}, {"座號": "45", "姓名": "謝彥為", "性別": "男", "班級職務": "無", "緊急聯絡人": "謝爸爸", "聯絡電話": "0977-100045", "輔導重點與特殊狀況": "熱愛閱讀與思考"}, {"座號": "46", "姓名": "鍾佳哲", "性別": "男", "班級職務": "班牌負責人", "緊急聯絡人": "鍾媽媽", "聯絡電話": "0988-100046", "輔導重點與特殊狀況": "做事負責，同學信任"}, {"座號": "47", "姓名": "罗永承", "性別": "男", "班級職務": "無", "緊急聯絡人": "羅爸爸", "聯絡電話": "0919-100047", "輔導重點與特殊狀況": "性向平穩，樂於協助他人"}];
+    let recordsData = {
+  "2026年08月": [
+    {
+      "id": "rec-20260801-21",
+      "no": "1",
+      "date": "2026-08-01",
+      "time": "10:10",
+      "datetime_display": "8/1 10:10",
+      "seat": "21",
+      "name": "魏愉宣",
+      "target": "電聯家長",
+      "topic": "暑期課表確認與訊息更正",
+      "summary": "家長主動詢問開學前課表資訊，導師及時釐清先前傳送圖檔非最新版本，隨即重新傳送正確課表，維護親師資訊溝通之正確性與順暢度。"
+    },
+    {
+      "id": "rec-20260802-22",
+      "no": "2",
+      "date": "2026-08-02",
+      "time": "10:10",
+      "datetime_display": "8/2 10:10",
+      "seat": "22",
+      "name": "王宥仁",
+      "target": "電聯家長",
+      "topic": "返校打掃交通與請假輔導",
+      "summary": "家長關切學生暑期返校打掃之交通接送與請假程序，導師詳細說明學生到校時間、班級環境整潔排程，叮嚀學生應按時出勤並注意往返安全。"
+    },
+    {
+      "id": "rec-20260804-35",
+      "no": "3",
+      "date": "2026-08-04",
+      "time": "10:10",
+      "datetime_display": "8/4 10:10",
+      "seat": "35",
+      "name": "曹泳釤",
+      "target": "電聯家長",
+      "topic": "返校打掃請假規範說明",
+      "summary": "家長詢問學生返校打掃請假與時間安排，導師向家長說明學校請假規範與假卡填寫流程，提醒學生落實出勤紀錄，並叮嚀暑期安全事項。"
+    },
+    {
+      "id": "rec-20260805-36",
+      "no": "4",
+      "date": "2026-08-05",
+      "time": "10:10",
+      "datetime_display": "8/5 10:10",
+      "seat": "36",
+      "name": "郭承易",
+      "target": "電聯家長",
+      "topic": "到校服務日程與班務確認",
+      "summary": "家長聯繫導師確認學生暑期到校公共服務日程，導師說明班級整潔區域排班狀況與到校注意事項，請家長協助督促學生按時出席履行責任。"
+    },
+    {
+      "id": "rec-20260806-33",
+      "no": "5",
+      "date": "2026-08-06",
+      "time": "10:10",
+      "datetime_display": "8/6 10:10",
+      "seat": "33",
+      "name": "秦湘宏",
+      "target": "電聯家長",
+      "topic": "補行返校服務安排與叮嚀",
+      "summary": "家長詢問學生暑期返校打掃請假事宜，導師與家長確認補行服務時間與相關規定，提醒學生維護班級公共衛生，落實個人服務責任與生活紀律。"
+    },
+    {
+      "id": "rec-20260807-26",
+      "no": "6",
+      "date": "2026-08-07",
+      "time": "10:10",
+      "datetime_display": "8/7 10:10",
+      "seat": "26",
+      "name": "李權紘",
+      "target": "電聯家長",
+      "topic": "返校打掃請假與補考說明",
+      "summary": "家長聯繫導師說明學生因故無法參加返校打掃，導師說明請假手續與後續補行服務之安排，叮嚀家長保持連繫並引導學生重視團體紀律。"
+    },
+    {
+      "id": "rec-20260811-44",
+      "no": "7",
+      "date": "2026-08-11",
+      "time": "10:10",
+      "datetime_display": "8/11 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "電聯家長",
+      "topic": "開學準備與服儀常規叮嚀",
+      "summary": "家長詢問學生返校打掃及暑輔開學準備事項，導師提醒學校服儀規範、到校時間與學習態度，期許學生在新學期展現正向態度與規律作息。"
+    },
+    {
+      "id": "rec-20260813-10",
+      "no": "8",
+      "date": "2026-08-13",
+      "time": "10:10",
+      "datetime_display": "8/13 10:10",
+      "seat": "10",
+      "name": "張力勻",
+      "target": "電聯家長",
+      "topic": "學習準備與幹部職務輔導",
+      "summary": "導師與家長溝通學生九年級學習準備與班級職務分工，肯定其數理邏輯與英文能力，鼓勵持續發揮幹部領導力，建立良好學習常規迎接新學期。"
+    },
+    {
+      "id": "rec-20260813-26",
+      "no": "9",
+      "date": "2026-08-13",
+      "time": "10:10",
+      "datetime_display": "8/13 10:10",
+      "seat": "26",
+      "name": "李權紘",
+      "target": "電聯家長",
+      "topic": "開學準備與複習進度規劃",
+      "summary": "導師與家長聯繫確認開學用品準備與註冊事項，提醒家長督促孩子適應九年級作息，妥善規劃會考各科複習進度，建立穩健的學習步調。"
+    },
+    {
+      "id": "rec-20260813-30",
+      "no": "10",
+      "date": "2026-08-13",
+      "time": "10:10",
+      "datetime_display": "8/13 10:10",
+      "seat": "30",
+      "name": "邱顯亦",
+      "target": "電聯家長",
+      "topic": "升學目標與手機作息管理",
+      "summary": "導師與家長溝通學生九年級升學目標與學習態度，特別提醒家長在家應協助控管學生使用手機時間，避免沉迷電玩，保持專注以提升複習效果。"
+    },
+    {
+      "id": "rec-20260813-36",
+      "no": "11",
+      "date": "2026-08-13",
+      "time": "10:10",
+      "datetime_display": "8/13 10:10",
+      "seat": "36",
+      "name": "郭承易",
+      "target": "電聯家長",
+      "topic": "病假通知與課業交代關心",
+      "summary": "家長因學生身體不適向導師請假，導師提醒落實請假手續並關心學生康復狀況，交代當日課業進度請同儕轉達，維持學習不中斷。"
+    },
+    {
+      "id": "rec-20260813-44",
+      "no": "12",
+      "date": "2026-08-13",
+      "time": "10:10",
+      "datetime_display": "8/13 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "電聯家長",
+      "topic": "註冊費用與單據說明溝通",
+      "summary": "家長向導師詢問開學註冊與各項費用繳交明細，導師提供相關單據說明並提醒收繳期限，促進親師間良好雙向溝通與行政配合。"
+    },
+    {
+      "id": "rec-20260814-10",
+      "no": "13",
+      "date": "2026-08-14",
+      "time": "10:10",
+      "datetime_display": "8/14 10:10",
+      "seat": "10",
+      "name": "張力勻",
+      "target": "電聯家長",
+      "topic": "座位安排與課堂專注觀察",
+      "summary": "家長關切學生新學期座位安排與學習狀況，導師說明課堂座次調整原則與近況觀察結果，期許家長共同關心學生課堂專注度與專心聽講態度。"
+    },
+    {
+      "id": "rec-20260817-10",
+      "no": "14",
+      "date": "2026-08-17",
+      "time": "10:10",
+      "datetime_display": "8/17 10:10",
+      "seat": "10",
+      "name": "張力勻",
+      "target": "電聯家長",
+      "topic": "英文小老師與同儕輔導",
+      "summary": "導師與家長溝通學生擔任英文小老師之表現，肯定其口語能力優異且樂於同儕輔導，鼓勵發揮同理心帶動班級整體學習風氣與讀書氛圍。"
+    },
+    {
+      "id": "rec-20260821-21",
+      "no": "15",
+      "date": "2026-08-21",
+      "time": "10:10",
+      "datetime_display": "8/21 10:10",
+      "seat": "21",
+      "name": "魏愉宣",
+      "target": "電聯家長",
+      "topic": "請假補簽與作業進度追蹤",
+      "summary": "家長向導師請假學生個人行程，導師提醒依規定開學後補辦請假簽核手續，並交代課堂作業與會考複習範圍，請家長協助督促完成。"
+    },
+    {
+      "id": "rec-20260821-44",
+      "no": "16",
+      "date": "2026-08-21",
+      "time": "10:10",
+      "datetime_display": "8/21 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "電聯家長",
+      "topic": "情緒專注力與按時服藥督促",
+      "summary": "導師與家長溝通學生情緒專注力與行為表現，提醒家長務必督促學生按時服用相關藥物，並配合學校跑步運動，提升情緒自我管理與體力。"
+    },
+    {
+      "id": "rec-20260825-24",
+      "no": "17",
+      "date": "2026-08-25",
+      "time": "10:10",
+      "datetime_display": "8/25 10:10",
+      "seat": "24",
+      "name": "吳毅軒",
+      "target": "電聯家長",
+      "topic": "午餐繳費與社團選課輔導",
+      "summary": "家長詢問學校午餐費用繳交管道與社團選課事宜，導師詳細說明繳費管道與選課流程，提醒家長引導學生合理安排課餘時間，兼顧課業與興趣發展。"
+    },
+    {
+      "id": "rec-20260826-30",
+      "no": "18",
+      "date": "2026-08-26",
+      "time": "10:10",
+      "datetime_display": "8/26 10:10",
+      "seat": "30",
+      "name": "邱顯亦",
+      "target": "電聯家長",
+      "topic": "課堂專注度欠佳與作業檢查",
+      "summary": "導師聯繫家長說明學生課堂聽講專注度欠佳、易發呆之狀況，提醒家長在家協助落實作息管理與每日聯絡簿作業檢查，共同提升學習成效。"
+    },
+    {
+      "id": "rec-20260826-31",
+      "no": "19",
+      "date": "2026-08-26",
+      "time": "10:10",
+      "datetime_display": "8/26 10:10",
+      "seat": "31",
+      "name": "姜芃睿",
+      "target": "電聯家長",
+      "topic": "學生健檢與保險文件說明",
+      "summary": "家長詢問學校健康檢查與平安保險相關文件，導師提供相關行政說明並交代表單繳交時程，保持親師訊息透明與行政順暢配合。"
+    },
+    {
+      "id": "rec-20260827-22",
+      "no": "20",
+      "date": "2026-08-27",
+      "time": "10:10",
+      "datetime_display": "8/27 10:10",
+      "seat": "22",
+      "name": "王宥仁",
+      "target": "電聯家長",
+      "topic": "課堂思考敏捷與秩序維護",
+      "summary": "導師與家長溝通學生課堂反應與學習積極度，肯定學生反應敏捷、理解力強，期許在課堂上維持良好秩序，發揮正面影響力帶動同儕。"
+    },
+    {
+      "id": "rec-20260827-26",
+      "no": "21",
+      "date": "2026-08-27",
+      "time": "10:10",
+      "datetime_display": "8/27 10:10",
+      "seat": "26",
+      "name": "李權紘",
+      "target": "電聯家長",
+      "topic": "模擬考準備與升學目標確立",
+      "summary": "家長聯繫導師關心學生模擬考準備情形，導師提供各科複習建議與生活作息叮嚀，鼓勵學生建立堅定升學目標，提升自主學習動機。"
+    },
+    {
+      "id": "rec-20260827-31",
+      "no": "22",
+      "date": "2026-08-27",
+      "time": "10:10",
+      "datetime_display": "8/27 10:10",
+      "seat": "31",
+      "name": "姜芃睿",
+      "target": "電聯家長",
+      "topic": "交友互動與生活禮儀輔導",
+      "summary": "導師與家長溝通學生在校交友互動與生活紀律，提醒家長引導學生保持正向溝通與尊師重道態度，避免與同儕發生言語摩擦，促進健康成長。"
+    },
+    {
+      "id": "rec-20260827-33",
+      "no": "23",
+      "date": "2026-08-27",
+      "time": "10:10",
+      "datetime_display": "8/27 10:10",
+      "seat": "33",
+      "name": "秦湘宏",
+      "target": "電聯家長",
+      "topic": "身體不適關注與即時回報",
+      "summary": "家長向導師反映學生身體有輕微不適現象，導師在校持續觀察其精神狀況並隨時保持連繫，確保學生在校學習安全與身體健康狀況。"
+    },
+    {
+      "id": "rec-20260827-36",
+      "no": "24",
+      "date": "2026-08-27",
+      "time": "10:10",
+      "datetime_display": "8/27 10:10",
+      "seat": "36",
+      "name": "郭承易",
+      "target": "電聯家長",
+      "topic": "聯絡簿簽核與自主學習督促",
+      "summary": "導師與家長討論學生聯絡簿撰寫狀況與成績填報情形，提醒家長每日核簽聯絡簿並關心複習進度，親師合作督促學生建立自主學習習慣。"
+    },
+    {
+      "id": "rec-20260828-33",
+      "no": "25",
+      "date": "2026-08-28",
+      "time": "10:10",
+      "datetime_display": "8/28 10:10",
+      "seat": "33",
+      "name": "秦湘宏",
+      "target": "電聯家長",
+      "topic": "請假流程與課業轉交交代",
+      "summary": "家長向導師確認學生請假手續與假卡繳交方式，導師說明假卡簽核流程，並提醒交代班上同學轉交相關功課與考試資訊，保持課業進度不中斷。"
+    }
+  ],
+  "2026年09月": [
+    {
+      "id": "rec-20260901-44",
+      "no": "1",
+      "date": "2026-09-01",
+      "time": "10:10",
+      "datetime_display": "9/1 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "開學秩序常規與藥物控制溝通",
+      "summary": "導師與家長溝通學生開學後課堂秩序與常態規範，要求學生嚴格遵守校規與上課紀律，期許家長配合督促藥物服用與情緒穩定，維護課堂學習品質。"
+    },
+    {
+      "id": "rec-20260902-22",
+      "no": "2",
+      "date": "2026-09-02",
+      "time": "10:10",
+      "datetime_display": "9/2 10:10",
+      "seat": "22",
+      "name": "王宥仁",
+      "target": "電聯家長",
+      "topic": "就醫請假與診斷證明補交",
+      "summary": "家長向導師請假學生看診事宜，導師提醒開立診斷證明並完成請假補扣手續，同時表達關心學生身體複原狀況，交代課業進度。"
+    },
+    {
+      "id": "rec-20260903-26",
+      "no": "3",
+      "date": "2026-09-03",
+      "time": "10:10",
+      "datetime_display": "9/3 10:10",
+      "seat": "26",
+      "name": "李權紘",
+      "target": "電聯家長",
+      "topic": "模擬考檢討與錯題筆記輔導",
+      "summary": "導師與家長聯繫學生模擬考試卷檢討與弱點分析，建議學生針對錯題進行深度檢討，建立個人錯題訂正筆記，以提升會考複習效率。"
+    },
+    {
+      "id": "rec-20260904-32",
+      "no": "4",
+      "date": "2026-09-04",
+      "time": "10:10",
+      "datetime_display": "9/4 10:10",
+      "seat": "32",
+      "name": "洪鼎祐",
+      "target": "電聯家長",
+      "topic": "晚自習計畫與校車接送溝通",
+      "summary": "家長向導師詢問學生晚自習安排與放學校車接送時間，導師提供晚自習實施計畫與放學流程，確保親師資訊對齊，維護學生放學交通安全。"
+    },
+    {
+      "id": "rec-20260907-44",
+      "no": "5",
+      "date": "2026-09-07",
+      "time": "10:10",
+      "datetime_display": "9/7 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "同儕溝通禮儀與生活教育",
+      "summary": "導師與家長溝通學生與同儕互動時之溝通語氣及生活禮儀，提醒在家加強品德教育，要求學生避免使用粗俗或不當言語，以建立良好人際關係。"
+    },
+    {
+      "id": "rec-20260908-44",
+      "no": "6",
+      "date": "2026-09-08",
+      "time": "10:10",
+      "datetime_display": "9/8 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "課堂聽講欠專注與作業欠交輔導",
+      "summary": "導師告知家長學生因上課聽講欠專注且未依限完成課業作業，已進行個別面談輔導，請家長配合在居家環境加強督促自主複習與規律作息。"
+    },
+    {
+      "id": "rec-20260910-44",
+      "no": "7",
+      "date": "2026-09-10",
+      "time": "10:10",
+      "datetime_display": "9/10 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】偷買外食導致上課遲到",
+      "summary": "【違規情節】44號謝宥晨於第四節上課時間，與同儕前往地下室私自購買外食，返回教室時已上課遲到2分鐘。  【輔導處置】導師即時沒收違規外食，並進行嚴肅面談輔導，要求學生深刻反省違規行為，嚴格遵守校規與上課時間。"
+    },
+    {
+      "id": "rec-20260910-46",
+      "no": "8",
+      "date": "2026-09-10",
+      "time": "10:10",
+      "datetime_display": "9/10 10:10",
+      "seat": "46",
+      "name": "鍾佳哲",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】課間購買外食遲到輔導",
+      "summary": "【違規情節】46號鍾佳哲於第四節課前前往地下室購買外食，導致上課遲到2分鐘。  【輔導處置】導師沒收外食並進行生活常規教育，提醒國三備考期間應嚴守時間觀念與學校生活規範。"
+    },
+    {
+      "id": "rec-20260910-47",
+      "no": "9",
+      "date": "2026-09-10",
+      "time": "10:10",
+      "datetime_display": "9/10 10:10",
+      "seat": "47",
+      "name": "羅永承",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】課間購買外食遲到輔導",
+      "summary": "【違規情節】47號羅永承課間前往地下室購買外食，致使上課遲到2分鐘。  【輔導處置】導師沒收外食並進行個別輔導，叮嚀應重視個人常規與團體秩序，切勿因個人行為影響課堂進行。"
+    },
+    {
+      "id": "rec-20260911-22",
+      "no": "10",
+      "date": "2026-09-11",
+      "time": "10:10",
+      "datetime_display": "9/11 10:10",
+      "seat": "22",
+      "name": "王宥仁",
+      "target": "電聯家長",
+      "topic": "放學交通變更與自行返家交代",
+      "summary": "家長告知導師今日因加班無法親自接送放學，請導師轉達學生自行搭乘校車或走返家，導師已向學生確認並妥善交代交通安全。"
+    },
+    {
+      "id": "rec-20260911-26",
+      "no": "11",
+      "date": "2026-09-11",
+      "time": "10:10",
+      "datetime_display": "9/11 10:10",
+      "seat": "26",
+      "name": "李權紘",
+      "target": "電聯家長",
+      "topic": "懇親會請假與學校資訊轉達",
+      "summary": "家長告知導師因故不克出席學校懇親會，導師表示理解並說明將傳送懇親會簡報與重要座談資料供家長參閱，確保親師合作無縫隙。"
+    },
+    {
+      "id": "rec-20260911-33",
+      "no": "12",
+      "date": "2026-09-11",
+      "time": "10:10",
+      "datetime_display": "9/11 10:10",
+      "seat": "33",
+      "name": "秦湘宏",
+      "target": "電聯家長",
+      "topic": "LINE帳號變更與班群重新邀請",
+      "summary": "家長告知學生手機故障更換 LINE 帳號，請導師協助重新將學生加入班級群組，導師順利完成邀請，以維護班級訊息發布與聯絡管道。"
+    },
+    {
+      "id": "rec-20260912-35",
+      "no": "13",
+      "date": "2026-09-12",
+      "time": "10:10",
+      "datetime_display": "9/12 10:10",
+      "seat": "35",
+      "name": "曹泳釤",
+      "target": "電聯家長",
+      "topic": "【違規事件】未假缺席與安全確認",
+      "summary": "【違規情節】學生當日未到校且事前完全未辦理請假手續，亦未主動告知導師。  【輔導處置】導師即時聯繫家長確認學生居家安全，向家長嚴正說明學校事假規範，要求未來務必事先簽准假卡，建立學生規範意識與責任感。"
+    },
+    {
+      "id": "rec-20260914-10",
+      "no": "14",
+      "date": "2026-09-14",
+      "time": "10:10",
+      "datetime_display": "9/14 10:10",
+      "seat": "10",
+      "name": "張力勻",
+      "target": "電聯家長",
+      "topic": "腳部發炎與體育課隨班休息",
+      "summary": "家長告知學生腳部發炎不適，請求暫緩體育跑步等劇烈運動，導師予以協助安排隨班休息，並持續關心其身體狀況與同儕照應。"
+    },
+    {
+      "id": "rec-20260915-10",
+      "no": "15",
+      "date": "2026-09-15",
+      "time": "10:10",
+      "datetime_display": "9/15 10:10",
+      "seat": "10",
+      "name": "張力勻",
+      "target": "面談(學生),電聯家長",
+      "topic": "課堂從事非課業行為與學習態度",
+      "summary": "【違規情節】導師發現學生於地理課課堂私自貼水鑽，影響上課專注度，且近期背科成績有下滑趨勢。  【輔導處置】導師進行個別面談，提醒學習態度與成績具直接正相關，並聯繫家長，家長允諾回家落實溝通並禁止帶水鑽到校。"
+    },
+    {
+      "id": "rec-20260915-26",
+      "no": "16",
+      "date": "2026-09-15",
+      "time": "10:10",
+      "datetime_display": "9/15 10:10",
+      "seat": "26",
+      "name": "李權紘",
+      "target": "電聯家長",
+      "topic": "應考手錶準備與時間管理叮嚀",
+      "summary": "導師提醒家長為學生準備應考手錶以利考試掌握時間，家長表示因先前弄丟將儘速重新購買，導師肯定家長配合態度，叮嚀學生落實時間管理。"
+    },
+    {
+      "id": "rec-20260915-44",
+      "no": "17",
+      "date": "2026-09-15",
+      "time": "10:10",
+      "datetime_display": "9/15 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "電聯家長",
+      "topic": "理化筆記補帶與事假假卡確認",
+      "summary": "導師提醒家長協助送達學生遺忘之理化筆記以備抽查，並確認事假假卡簽核狀況，親師共同督促學生準備齊全學習用品。"
+    },
+    {
+      "id": "rec-20260916-44",
+      "no": "18",
+      "date": "2026-09-16",
+      "time": "10:10",
+      "datetime_display": "9/16 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】搭錯校車班次與銷過延宕",
+      "summary": "【違規情節】44號謝宥晨早上搭乘非車證指定之早期校車偷渡到校被抓，面臨記過處分；且開學至今完全未展開銷過動作，亦未繳交課堂銷過卡。  【輔導處置】導師進行嚴肅警告與面談，要求學生立即展開銷過流程，並聯繫家長共同督促，避免因懲處影響升學權益。"
+    },
+    {
+      "id": "rec-20260917-35",
+      "no": "19",
+      "date": "2026-09-17",
+      "time": "10:10",
+      "datetime_display": "9/17 10:10",
+      "seat": "35",
+      "name": "曹泳釤",
+      "target": "電聯家長",
+      "topic": "懇親會行程說明與訊息公告",
+      "summary": "家長詢問學校懇親會流程與時間安排，導師提供完整活動行事表並佈達於班級群組，維持親師聯繫溝通順暢，歡迎家長踴躍參與。"
+    },
+    {
+      "id": "rec-20260918-44",
+      "no": "20",
+      "date": "2026-09-18",
+      "time": "10:10",
+      "datetime_display": "9/18 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "鑰匙確認與放學返家安全",
+      "summary": "家長聯繫導師確認學生是否攜帶家中鑰匙，導師協助在校向學生確認無誤後回覆家長，維護學生放學返家安全與生活自我照顧。"
+    },
+    {
+      "id": "rec-20260919-24",
+      "no": "21",
+      "date": "2026-09-19",
+      "time": "10:10",
+      "datetime_display": "9/19 10:10",
+      "seat": "24",
+      "name": "吳毅軒",
+      "target": "電聯家長",
+      "topic": "多元學習服務時數採計說明",
+      "summary": "家長詢問多元學習表現服務時數採計與採分採計標準，導師詳細解答服務時數對應之積分計算規則，肯定學生服務熱忱與積極態度。"
+    },
+    {
+      "id": "rec-20260921-36",
+      "no": "22",
+      "date": "2026-09-21",
+      "time": "10:10",
+      "datetime_display": "9/21 10:10",
+      "seat": "36",
+      "name": "郭承易",
+      "target": "電聯家長",
+      "topic": "學校行事曆查詢與教學計畫",
+      "summary": "家長詢問學校學期行事曆與重要日程，導師引導家長參閱班級記事本檔案，提供完整教學活動計畫資訊，促進親師溝通。"
+    },
+    {
+      "id": "rec-20260921-44",
+      "no": "23",
+      "date": "2026-09-21",
+      "time": "10:10",
+      "datetime_display": "9/21 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "用藥狀況關心與課堂浮動輔導",
+      "summary": "導師關心家長身體健康，並深入討論學生上課注意力浮動與常態用藥情況。學生親口承認未按時服藥，導師強烈建議家長務必督促其按時服藥，以穩定學習態度與課堂專注。"
+    },
+    {
+      "id": "rec-20260922-44",
+      "no": "24",
+      "date": "2026-09-22",
+      "time": "10:10",
+      "datetime_display": "9/22 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】故意未帶並損毀《詞語經要》教材",
+      "summary": "【違規情節】學生課堂未抄寫題目，經叮嚀後竟然故意將《詞語經要》留在抽屜不帶回家背誦重考，且講義內部有3-4頁遭扯落損毀。  【輔導處置】導師嚴厲告誡學生學習態度問題，要求尋回損毀頁數並黏妥，同時通知家長加強督促學生在家背誦重考與保護教材。"
+    },
+    {
+      "id": "rec-20260923-28",
+      "no": "25",
+      "date": "2026-09-23",
+      "time": "10:10",
+      "datetime_display": "9/23 10:10",
+      "seat": "28",
+      "name": "邱奕恩",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】私帶備用手機轉借同學",
+      "summary": "【違規情節】學生違規攜帶舊備用手機到校，且未依規定交給導師保管，私下將手機轉借予同學邱顯亦於課堂使用，導致同學遭查獲處分。  【輔導處置】導師進行嚴肅面談輔導，說明攜帶手機未申報之責任，要求深刻反省並遵守校規。"
+    },
+    {
+      "id": "rec-20260923-28",
+      "no": "26",
+      "date": "2026-09-23",
+      "time": "10:10",
+      "datetime_display": "9/23 10:10",
+      "seat": "28",
+      "name": "邱奕恩",
+      "target": "面談(學生)",
+      "topic": "【違規事件】私喝含糖飲料與班級垃圾堆積",
+      "summary": "【違規情節】學生私自攜帶並飲用含糖飲料，且打掃時間未落實清理，導致教室垃圾桶溢出至地面堆積。  【輔導處置】導師要求學生立即清理環境，並進行團體生活紀律與環境衛生教育，強調公德心與班級清潔責任。"
+    },
+    {
+      "id": "rec-20260923-30",
+      "no": "27",
+      "date": "2026-09-23",
+      "time": "10:10",
+      "datetime_display": "9/23 10:10",
+      "seat": "30",
+      "name": "邱顯亦",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】偷帶手機課堂使用與記過處分",
+      "summary": "【違規情節】學生偷帶手機到校且全天未交出，更於生物課課堂私自拿出來使用，嚴重違反校規與課堂紀律。  【輔導處置】導師沒收手機代為保管，告知家長將依校規記小過一支，並說明若未消過將影響升學，要求家長配合督促學習態度與手機控管。"
+    },
+    {
+      "id": "rec-20260923-44",
+      "no": "28",
+      "date": "2026-09-23",
+      "time": "10:10",
+      "datetime_display": "9/23 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】學務處公然言語不當與同儕爭執",
+      "summary": "【違規情節】學生前往學務處銷過未成，竟於主任面前公然講髒話，並與47號羅永承發生口角爭執，嚴重違反校規品德常規。  【輔導處置】學務處要求記警告處分一次。導師聯繫家長要求在家務必嚴格禁止孩子講髒話，並在校加強品德常規輔導，告誡切勿累積處分影響升學。"
+    },
+    {
+      "id": "rec-20260923-47",
+      "no": "29",
+      "date": "2026-09-23",
+      "time": "10:10",
+      "datetime_display": "9/23 10:10",
+      "seat": "47",
+      "name": "羅永承",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規事件】學務處同儕爭執與警告處分",
+      "summary": "【違規情節】學生於學務處辦理銷過期間，與44號謝宥晨發生口角爭執並使用不當言語。  【輔導處置】學務處要求記警告處分一次。導師進行面談輔導，要求學生控制情緒、嚴守公眾場所禮儀，避免因情緒衝動造成懲處處分。"
+    },
+    {
+      "id": "rec-20260924-22",
+      "no": "30",
+      "date": "2026-09-24",
+      "time": "10:10",
+      "datetime_display": "9/24 10:10",
+      "seat": "22",
+      "name": "王宥仁",
+      "target": "電聯家長",
+      "topic": "頭暈身體不適與家長接送就醫",
+      "summary": "家長反映學生電話告知頭暈不適，導師確認學生未發燒，協助安排至保健室休息，並協調家長提早接送就醫，維護學生健康安全。"
+    },
+    {
+      "id": "rec-20260924-28",
+      "no": "31",
+      "date": "2026-09-24",
+      "time": "10:10",
+      "datetime_display": "9/24 10:10",
+      "seat": "28",
+      "name": "邱奕恩",
+      "target": "面談(學生)",
+      "topic": "深談溝通與正向免責法治教育",
+      "summary": "【輔導處置】導師與學生進行深談輔導，說明轉借手機之法律與校規責任。引導學生建立「主動通報免責」觀念，教育其遇事應向導師報告而非隱瞞，建立誠實正向之法治觀念。"
+    },
+    {
+      "id": "rec-20260924-35",
+      "no": "32",
+      "date": "2026-09-24",
+      "time": "10:10",
+      "datetime_display": "9/24 10:10",
+      "seat": "35",
+      "name": "曹泳釤",
+      "target": "電聯家長",
+      "topic": "晚自習刷卡通知與留校安全確認",
+      "summary": "家長詢問晚自習刷卡通知時間較早之疑慮，導師釐清學生確實留校自習，係提早刷卡所致，向家長確認學生在校安全無虞。"
+    },
+    {
+      "id": "rec-20260924-36",
+      "no": "33",
+      "date": "2026-09-24",
+      "time": "10:10",
+      "datetime_display": "9/24 10:10",
+      "seat": "36",
+      "name": "郭承易",
+      "target": "面談(學生),電聯家長",
+      "topic": "【違規與學習退步】聯絡簿缺簽與國文成績下滑",
+      "summary": "【違規情節】學生聯絡簿長期缺家長簽名、成績未填，經導師打問號仍未補上，且國文成績持續下滑、心思不在課業上。  【輔導處置】導師主動聯繫家長反映學習態度異常，家長邀約電話會談，親師共同探討後續輔導策略與嚴格督促機制。"
+    },
+    {
+      "id": "rec-20260924-44",
+      "no": "34",
+      "date": "2026-09-24",
+      "time": "10:10",
+      "datetime_display": "9/24 10:10",
+      "seat": "44",
+      "name": "謝宥晨",
+      "target": "電聯家長",
+      "topic": "正規放學時間確認與隊伍秩序",
+      "summary": "家長確認學生放學時間與接送地點，導師回覆正規放學時間為3:45，並交代同學整隊秩序，維持親師聯繫溝通。"
+    },
+    {
+      "id": "rec-20260929-21",
+      "no": "35",
+      "date": "2026-09-29",
+      "time": "10:10",
+      "datetime_display": "9/29 10:10",
+      "seat": "21",
+      "name": "魏愉宣",
+      "target": "電聯家長",
+      "topic": "腹痛請假與保健室接送關懷",
+      "summary": "家長因學生腹痛向導師請假返家休息，導師確認家長接送與保健室告知手續，關切學生身體狀況並交代課業進度。"
+    },
+    {
+      "id": "rec-20260929-33",
+      "no": "36",
+      "date": "2026-09-29",
+      "time": "10:10",
+      "datetime_display": "9/29 10:10",
+      "seat": "33",
+      "name": "秦湘宏",
+      "target": "電聯家長",
+      "topic": "成語補考完成與肯定鼓勵",
+      "summary": "家長回報學生已於在家完成成語補考作業，導師感謝家長積極協助督促，肯定學生認真負責之學習態度與補考表現。"
+    }
+  ]
+};
+    const config = {"school_year": "113學年度", "semester": "第一學期", "school_name": "六和高級中學國中部", "grade_class": "九年五班", "teacher_name": "張慧玲", "total_students": 46, "class_motto": "活力奔放，熱情昂揚；攜手前行，勇於翱翔！", "class_features": "1.朝氣蓬勃（動能強大/體育亮眼） 2.自信展現（各方面多元發展） 3.相處融洽（互相討論/歡樂氣氛） 4.課堂學習（保持正向/升學目標明確）", "class_rules_core": ["自重自律", "互助合作", "負責守時", "尊師重道", "感恩惜福", "積極進取"], "weekly_meeting_topics": ["學期開學典禮與班規制定", "反霸凌與校園安全宣導", "友善校園週與性別平等教育", "交通安全與自主生活指導", "第一次段考前複習與讀書計畫", "第一次段考檢討與目標設定", "民主法治與班級幹部工作檢討", "環境保護與資源回收徹底落實", "職涯探索與生涯發展規劃", "第二次段考前讀書重點整理", "第二次段考分析與各科進步獎勵", "人際關係與情緒管理溝通", "校慶運動會籌備與團隊合作", "公共服務時數結算與校園整理", "期末段考衝刺與考前準備", "期末班會總結與假期安全宣導"]};
+    let lastAddedRowId = null;
+
+    // Intelligent AI Counseling Text Refiner (Target: ~30 characters objective formal tone)
+    function polishCounselingText(rawText, name, topic, target) {
+      let cleanInput = (rawText || "").trim();
+      let sname = name || "學生";
+      let topicStr = topic || "例行晤談";
+
+      if (!cleanInput) {
+        if (topicStr === "課業學習") {
+          return `關心與輔導【${sname}】課業學習與作業狀況，導師進行個別指導，學生表示配合改善。`;
+        } else if (topicStr === "常規問題") {
+          return `關心【${sname}】生活常規與品德表現，導師進行指導告誡，學生虛心接受並承諾改進。`;
+        } else if (topicStr === "人際關係") {
+          return `輔導【${sname}】同儕溝通與相處問題，引導理性表達，學生同意和睦相處。`;
+        } else if (topicStr === "學生請假") {
+          return `確認【${sname}】請假事宜與出勤狀況，導師給予關懷並叮嚀課業補繳進度。`;
+        } else if (topicStr === "服裝儀容") {
+          return `提醒【${sname}】遵守學校服儀規範，學生虛心接受導師指導並隨即配合整頓。`;
+        } else {
+          return `與【${sname}】進行${topicStr}個別晤談，導師進行關懷指導，輔導互動良好。`;
+        }
+      }
+
+      let input_text = cleanInput;
+      input_text = input_text.replace(/^與【.*?】共同參與.*?[。；;\s]*/, '');
+
+      if (input_text.length <= 90) {
+        let res = input_text;
+        if (!res.includes(sname) && !res.startsWith("【")) {
+          res = `【${sname}】${res}`;
+        }
+        if (!/[。！？.!?]$/.test(res)) {
+          res += "。";
+        }
+        return res;
+      }
+
+      let event = "";
+      if (/講髒話|髒話|不當言語|粗口|罵人/.test(input_text)) {
+        event = "學生在校使用不當言語，學務處依規擬記警告處分。";
+      } else if (/打架|爭執|口角|吵架|衝突/.test(input_text)) {
+        event = "學生發生同儕爭執與口角衝突事宜。";
+      } else if (/作業|缺交|未交|成績|考不及格/.test(input_text)) {
+        event = "學生課業學習與作業繳交狀況不佳。";
+      } else if (/遲到|曠課|請假|出勤|作息/.test(input_text)) {
+        event = "確認學生出勤與課務相關事宜。";
+      } else {
+        let firstSent = input_text.split(/[。！？\n]/)[0];
+        if (firstSent.length > 40) firstSent = firstSent.substring(0, 40) + "…";
+        event = `${firstSent}。`;
+      }
+
+      let action = "";
+      if (/家長|父母|電聯|電話|說服/.test(input_text)) {
+        if (/同意|配合|懲處|處分|警告/.test(input_text)) {
+          action = "導師告誡學生並聯絡家長溝通說明，家長同意配合學校處分與督導。";
+        } else {
+          action = "導師進行叮嚀告誡並聯絡家長溝通說明狀況。";
+        }
+      } else {
+        action = "導師進行個別叮嚀與告誡輔導。";
+      }
+
+      let followup = "後續持續觀察學生狀況與生活常規。";
+
+      return `【${sname}】${event}${action}${followup}`;
+    }
+
+    
+
+
+    
+    function formatTargetMethodLine(targetVal) {
+      let targets = [];
+      if (Array.isArray(targetVal)) {
+        targets = targetVal;
+      } else if (typeof targetVal === 'string') {
+        targets = targetVal.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      const hasFaceStu = targets.some(t => t.includes('面談(學生)') || t === '面談學生' || t === '學生面談');
+      const hasFaceParent = targets.some(t => t.includes('面談(家長)') || t === '面談家長' || t === '家長面談');
+      const hasPhone = targets.some(t => t.includes('電聯家長') || t === '電話聯絡');
+      const hasHome = targets.some(t => t.includes('家訪') || t === '家庭訪問');
+
+      let otherText = '';
+      const otherObj = targets.find(t => t.startsWith('其他') || (!['面談(學生)','面談(家長)','電聯家長','家訪'].some(k => t.includes(k))));
+      if (otherObj) {
+        if (otherObj.includes(':')) {
+          otherText = otherObj.split(':')[1].trim();
+        } else if (otherObj.includes('：')) {
+          otherText = otherObj.split('：')[1].trim();
+        } else if (otherObj !== '其他') {
+          otherText = otherObj;
+        }
+      }
+
+      const isFace = (hasFaceStu || hasFaceParent) ? '☑面談' : '☐面談';
+      const stuCheck = hasFaceStu ? '☑學生' : '☐學生';
+      const parentCheck = hasFaceParent ? '☑家長' : '☐家長';
+      const faceGroup = `${isFace}(${stuCheck} ${parentCheck})`;
+
+      const phoneGroup = hasPhone ? '☑電聯家長' : '☐電聯家長';
+      const homeGroup = hasHome ? '☑家訪' : '☐家訪';
+
+      let otherGroup = '☐其他：';
+      if (otherObj || otherText) {
+        otherGroup = `☑其他${otherText ? '：' + otherText : '：'}`;
+      }
+
+      return `${faceGroup} &nbsp;&nbsp; ${phoneGroup} &nbsp;&nbsp; ${homeGroup} &nbsp;&nbsp; ${otherGroup}`;
+    }
+
+
+    function extractSeatNumbers(inputStr) {
+      if (!inputStr) return [];
+      const matches = [];
+
+      // Match seat numbers followed by 號/番 e.g. 1號, 02號, 3番
+      const numWithSign = inputStr.match(/\b(\d{1,2})\s*(?:號|番)/g);
+      if (numWithSign) {
+        numWithSign.forEach(m => {
+          const numMatch = m.match(/\d{1,2}/);
+          if (numMatch) {
+            const seat = numMatch[0].padStart(2, '0');
+            if (students.some(s => s.座號 === seat) && !matches.includes(seat)) {
+              matches.push(seat);
+            }
+          }
+        });
+      }
+
+      // Match seat numbers separated by delimiters (01, 02 / 1 2 / 1, 3 / 05+08)
+      const tokens = inputStr.split(/[,，\s\u3001、+/&]/);
+      tokens.forEach(tok => {
+        const cleanTok = tok.replace(/[^\d]/g, '');
+        if (cleanTok && cleanTok.length <= 2) {
+          const seat = cleanTok.padStart(2, '0');
+          if (students.some(s => s.座號 === seat) && !matches.includes(seat)) {
+            matches.push(seat);
+          }
+        }
+      });
+
+      // Match student names in input text
+      students.forEach(st => {
+        if (inputStr.includes(st.姓名) && !matches.includes(st.座號)) {
+          matches.push(st.座號);
+        }
+      });
+
+      return matches;
+    }
+
+    
+    function getSelectedGenTargets() {
+      const targets = [];
+      const chkStu = document.getElementById('gen-chk-stu');
+      const chkParent = document.getElementById('gen-chk-parent');
+      const chkPhone = document.getElementById('gen-chk-phone');
+      const chkHome = document.getElementById('gen-chk-home');
+      const otherInput = document.getElementById('gen-target-other');
+
+      if (chkStu && chkStu.checked) targets.push(chkStu.value);
+      if (chkParent && chkParent.checked) targets.push(chkParent.value);
+      if (chkPhone && chkPhone.checked) targets.push(chkPhone.value);
+      if (chkHome && chkHome.checked) targets.push(chkHome.value);
+
+      if (otherInput && otherInput.value.trim()) {
+        targets.push(`其他:${otherInput.value.trim()}`);
+      }
+      return targets.length > 0 ? targets.join(',') : '面談(學生)';
+    }
+
+    function getSelectedEditTargets() {
+      const targets = [];
+      const chkStu = document.getElementById('edit-chk-stu');
+      const chkParent = document.getElementById('edit-chk-parent');
+      const chkPhone = document.getElementById('edit-chk-phone');
+      const chkHome = document.getElementById('edit-chk-home');
+      const otherInput = document.getElementById('edit-target-other');
+
+      if (chkStu && chkStu.checked) targets.push(chkStu.value);
+      if (chkParent && chkParent.checked) targets.push(chkParent.value);
+      if (chkPhone && chkPhone.checked) targets.push(chkPhone.value);
+      if (chkHome && chkHome.checked) targets.push(chkHome.value);
+
+      if (otherInput && otherInput.value.trim()) {
+        targets.push(`其他:${otherInput.value.trim()}`);
+      }
+      return targets.length > 0 ? targets.join(',') : '面談(學生)';
+    }
+
+    function setSelectedEditTargets(targetVal) {
+      let targets = [];
+      if (Array.isArray(targetVal)) targets = targetVal;
+      else if (typeof targetVal === 'string') targets = targetVal.split(',').map(s => s.trim());
+
+      const chkStu = document.getElementById('edit-chk-stu');
+      const chkParent = document.getElementById('edit-chk-parent');
+      const chkPhone = document.getElementById('edit-chk-phone');
+      const chkHome = document.getElementById('edit-chk-home');
+      const otherInput = document.getElementById('edit-target-other');
+
+      if (chkStu) chkStu.checked = targets.some(t => t.includes('面談(學生)'));
+      if (chkParent) chkParent.checked = targets.some(t => t.includes('面談(家長)'));
+      if (chkPhone) chkPhone.checked = targets.some(t => t.includes('電聯家長'));
+      if (chkHome) chkHome.checked = targets.some(t => t.includes('家訪'));
+
+      let otherText = '';
+      const otherObj = targets.find(t => t.startsWith('其他') || (!['面談(學生)','面談(家長)','電聯家長','家訪'].some(k => t.includes(k))));
+      if (otherObj) {
+        if (otherObj.includes(':')) otherText = otherObj.split(':')[1].trim();
+        else if (otherObj.includes('：')) otherText = otherObj.split('：')[1].trim();
+        else if (otherObj !== '其他') otherText = otherObj;
+      }
+      if (otherInput) otherInput.value = otherText;
+    }
+
+    function openEditModal(monthKey, recordIndex) {
+      const rec = recordsData[monthKey] ? recordsData[monthKey][recordIndex] : null;
+      if (!rec) return;
+
+      document.getElementById('edit-month-key').value = monthKey;
+      document.getElementById('edit-rec-idx').value = recordIndex;
+      document.getElementById('edit-date').value = rec.date || '';
+      document.getElementById('edit-time').value = rec.time || '';
+      document.getElementById('edit-seat').value = rec.seat || '';
+      document.getElementById('edit-name').value = rec.name || '';
+      
+      setSelectedEditTargets(rec.target);
+      if (rec.topic) document.getElementById('edit-topic').value = rec.topic;
+      
+      document.getElementById('edit-summary').value = rec.summary || '';
+      document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.add('hidden');
+    }
+
+    function onEditSeatInput(val) {
+      val = val.trim();
+      const seat = val.padStart(2, '0');
+      let st = students.find(s => s.座號 === seat);
+      if (!st && val) {
+        st = students.find(s => parseInt(s.座號, 10) === parseInt(val, 10));
+      }
+      document.getElementById('edit-name').value = st ? st.姓名 : '';
+    }
+
+    function saveEditRecord() {
+      const monthKey = document.getElementById('edit-month-key').value;
+      const idx = parseInt(document.getElementById('edit-rec-idx').value, 10);
+      
+      if (!monthKey || isNaN(idx) || !recordsData[monthKey] || !recordsData[monthKey][idx]) {
+        alert('無效的紀錄，無法儲存');
+        return;
+      }
+
+      const dateVal = document.getElementById('edit-date').value;
+      const timeVal = document.getElementById('edit-time').value.trim();
+      const seatVal = document.getElementById('edit-seat').value.trim();
+      const nameVal = document.getElementById('edit-name').value.trim();
+      const targetVal = getSelectedEditTargets();
+      const topicVal = document.getElementById('edit-topic').value;
+      const summaryVal = document.getElementById('edit-summary').value.trim();
+
+      if (!seatVal || !nameVal) {
+        alert('請輸入有效的學生座號');
+        return;
+      }
+
+      let datetimeDisplay = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          datetimeDisplay = `${m}/${d}${timeVal ? ' ' + timeVal : ''}`;
+        }
+      }
+
+      recordsData[monthKey][idx] = {
+        ...recordsData[monthKey][idx],
+        date: dateVal,
+        time: timeVal,
+        datetime_display: datetimeDisplay,
+        seat: seatVal,
+        name: nameVal,
+        target: targetVal,
+        topic: topicVal,
+        summary: summaryVal || polishCounselingText('', nameVal, topicVal, targetVal)
+      };
+
+      closeEditModal();
+      renderPages();
+    }
+
+    function deleteRecordFromModal() {
+      const monthKey = document.getElementById('edit-month-key').value;
+      const idx = parseInt(document.getElementById('edit-rec-idx').value, 10);
+      if (monthKey && !isNaN(idx)) {
+        closeEditModal();
+        deleteRecord(monthKey, idx);
+      }
+    }
+
+    function addRecordFromGen() {
+      const dateVal = document.getElementById('gen-date').value;
+      const seatVal = document.getElementById('gen-seat').value.trim();
+      const rawSummaryVal = document.getElementById('gen-summary').value.trim();
+      const timeVal = document.getElementById('gen-time').value.trim() || '10:10';
+      const topicVal = document.getElementById('gen-topic').value;
+      const targetVal = getSelectedGenTargets();
+
+      const detectedSeats = extractSeatNumbers(seatVal + ' ' + rawSummaryVal);
+
+      if (detectedSeats.length === 0) {
+        alert('請輸入有效的學生座號或含有座號筆記！');
+        return;
+      }
+
+      let monthKey = '2026年09月';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length >= 2) {
+          monthKey = `${parts[0]}年${parts[1]}月`;
+        }
+      }
+
+      if (!recordsData[monthKey]) {
+        recordsData[monthKey] = [];
+      }
+
+      let datetimeDisplay = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          datetimeDisplay = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)} ${timeVal}`;
+        }
+      }
+
+      const allDetectedStudents = detectedSeats.map(stSeat => students.find(s => s.座號 === stSeat)).filter(Boolean);
+      const jointNamesStr = allDetectedStudents.map(s => s.姓名).join('、');
+
+      let addedCount = 0;
+
+      allDetectedStudents.forEach(st => {
+        let noteContext = rawSummaryVal;
+        if (allDetectedStudents.length > 1) {
+          noteContext = `與【${jointNamesStr}】共同參與${topicVal}。${rawSummaryVal}`;
+        }
+
+        const summaryVal = polishCounselingText(noteContext, st.姓名, topicVal, targetVal);
+
+        const newId = `rec-${Date.now()}-${st.座號}`;
+        const newRecord = {
+          id: newId,
+          no: String(recordsData[monthKey].length + 1),
+          date: dateVal,
+          time: timeVal,
+          datetime_display: datetimeDisplay,
+          seat: st.座號,
+          name: st.姓名,
+          target: targetVal,
+          topic: topicVal,
+          summary: summaryVal
+        };
+
+        recordsData[monthKey].push(newRecord);
+        lastAddedRowId = newId;
+        addedCount++;
+      });
+
+      recordsData[monthKey].forEach((r, idx) => {
+        r.no = String(idx + 1);
+      });
+
+      document.getElementById('gen-seat').value = '';
+      document.getElementById('gen-name').value = '';
+      document.getElementById('gen-summary').value = '';
+
+      const fb = document.getElementById('add-feedback');
+      const fbText = document.getElementById('feedback-text');
+      if (fb && fbText) {
+        fbText.textContent = `✅ 已成功為 ${addedCount} 位學生（${jointNamesStr}）自動生成面談與聯絡家長紀錄！`;
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 5000);
+      }
+
+      renderPages();
+    }
+
+    
+    function switchGenTab(mode) {
+      const singleBtn = document.getElementById('tab-btn-single');
+      const batchBtn = document.getElementById('tab-btn-batch');
+      const batchPanel = document.getElementById('gen-panel-batch');
+
+      if (mode === 'batch') {
+        singleBtn.className = "px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-800 rounded-t-lg";
+        batchBtn.className = "px-4 py-2 border-b-2 border-blue-600 text-blue-900 bg-blue-100 rounded-t-lg font-bold";
+        batchPanel.classList.remove('hidden');
+      } else {
+        singleBtn.className = "px-4 py-2 border-b-2 border-emerald-600 text-emerald-800 bg-emerald-50 rounded-t-lg font-bold";
+        batchBtn.className = "px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-800 rounded-t-lg";
+        batchPanel.classList.add('hidden');
+      }
+    }
+
+    function onBatchSeatInput(rowIdx) {
+      const seatInput = document.getElementById(`batch-seat-${rowIdx}`);
+      const val = seatInput ? seatInput.value.trim() : '';
+      const nameInput = document.getElementById(`batch-name-${rowIdx}`);
+
+      if (!val) {
+        if (nameInput) nameInput.value = '';
+        return;
+      }
+
+      const seat = val.padStart(2, '0');
+      let st = students.find(s => s.座號 === seat);
+      if (!st) {
+        st = students.find(s => parseInt(s.座號, 10) === parseInt(val, 10));
+      }
+
+      if (nameInput) {
+        nameInput.value = st ? st.姓名 : '';
+      }
+    }
+
+    function fillBatchDemoData() {
+      const demoTopics = ["常規問題", "例行晤談", "人際關係", "課業學習", "學生請假", "服裝儀容", "例行晤談", "課業學習", "常規問題"];
+      const demoTargets = ["面談(學生)", "電聯家長", "家訪", "面談(家長)", "面談(學生)", "面談(學生)", "電聯家長", "面談(學生)", "家訪"];
+      const demoNotes = ["上課專注度需提醒", "關心近期學習表現", "指導幹部溝通與相處", "段考複習衝刺指導", "請病假與關懷作息", "服裝儀容規範叮嚀", "性向與升學輔導", "作業缺繳提醒與補交", "課堂常規提醒"];
+
+      for (let i = 1; i <= 9; i++) {
+        const seatStr = String(i).padStart(2, '0');
+        const seatInput = document.getElementById(`batch-seat-${i}`);
+        if (seatInput) {
+          seatInput.value = seatStr;
+          onBatchSeatInput(i);
+        }
+        const topicSelect = document.getElementById(`batch-topic-${i}`);
+        if (topicSelect) topicSelect.value = demoTopics[i-1];
+        
+        const targetSelect = document.getElementById(`batch-target-${i}`);
+        if (targetSelect) targetSelect.value = demoTargets[i-1];
+
+        const summaryInput = document.getElementById(`batch-summary-${i}`);
+        if (summaryInput) summaryInput.value = demoNotes[i-1];
+      }
+    }
+
+    function submitBatch9Records() {
+      const dateVal = document.getElementById('batch-date').value || "2026-09-18";
+      let monthKey = '2026年09月';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length >= 2) {
+          monthKey = `${parts[0]}年${parts[1]}月`;
+        }
+      }
+
+      if (!recordsData[monthKey]) {
+        recordsData[monthKey] = [];
+      }
+
+      let datetimeDisplay = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          datetimeDisplay = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)} 10:10`;
+        }
+      }
+
+      let addedCount = 0;
+
+      for (let i = 1; i <= 9; i++) {
+        const seatVal = document.getElementById(`batch-seat-${i}`).value.trim();
+        const nameVal = document.getElementById(`batch-name-${i}`).value.trim();
+        const topicVal = document.getElementById(`batch-topic-${i}`).value;
+        const targetVal = document.getElementById(`batch-target-${i}`).value;
+        let summaryVal = document.getElementById(`batch-summary-${i}`).value.trim();
+
+        if (!seatVal || !nameVal) continue;
+
+        const polishedSummary = polishCounselingText(summaryVal, nameVal, topicVal, targetVal);
+
+        const newRecord = {
+          id: `rec-batch-${Date.now()}-${i}`,
+          no: String(recordsData[monthKey].length + 1),
+          date: dateVal,
+          time: '10:10',
+          datetime_display: datetimeDisplay,
+          seat: seatVal,
+          name: nameVal,
+          target: targetVal,
+          topic: topicVal,
+          summary: polishedSummary
+        };
+
+        recordsData[monthKey].push(newRecord);
+        addedCount++;
+      }
+
+      if (addedCount === 0) {
+        alert('請至少輸入一列有效的學生座號！');
+        return;
+      }
+
+      recordsData[monthKey].forEach((r, idx) => {
+        r.no = String(idx + 1);
+      });
+
+      // Clear batch input rows
+      for (let i = 1; i <= 9; i++) {
+        document.getElementById(`batch-seat-${i}`).value = '';
+        document.getElementById(`batch-name-${i}`).value = '';
+        document.getElementById(`batch-summary-${i}`).value = '';
+      }
+
+      const fb = document.getElementById('add-feedback');
+      const fbText = document.getElementById('feedback-text');
+      if (fb && fbText) {
+        fbText.textContent = `🚀 已成功一次新增 ${addedCount} 筆紀錄至【${monthKey}】檔！自動累加序號並排版滿頁 A4。`;
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 5000);
+      }
+
+      renderPages();
+    }
+
+    function autoLookupStudent() {
+      const seatInput = document.getElementById('gen-seat');
+      const val = seatInput ? seatInput.value.trim() : '';
+      const summaryTextarea = document.getElementById('gen-summary');
+      const summaryText = summaryTextarea ? summaryTextarea.value.trim() : '';
+
+      const detectedSeats = extractSeatNumbers(val + ' ' + summaryText);
+      const nameInput = document.getElementById('gen-name');
+
+      if (detectedSeats.length > 1) {
+        const names = detectedSeats.map(stSeat => {
+          const st = students.find(s => s.座號 === stSeat);
+          return st ? `${stSeat}${st.姓名}` : stSeat;
+        });
+        if (nameInput) nameInput.value = `${names.join(', ')} (共${detectedSeats.length}位)`;
+      } else if (detectedSeats.length === 1) {
+        const st = students.find(s => s.座號 === detectedSeats[0]);
+        if (nameInput) nameInput.value = st ? st.姓名 : '';
+      } else {
+        if (nameInput) nameInput.value = '';
+      }
+    }
+
+    function triggerPolishCurrent() {
+      const seatVal = document.getElementById('gen-seat').value.trim();
+      let name = document.getElementById('gen-name').value.trim();
+      if (!name && seatVal) {
+        let seat = seatVal.padStart(2, '0');
+        let st = students.find(s => s.座號 === seat);
+        if (st) name = st.姓名;
+      }
+      if (!name) name = "學生";
+
+      const topic = document.getElementById('gen-topic').value;
+      const target = document.getElementById('gen-target').value;
+      const summaryTextarea = document.getElementById('gen-summary');
+      
+      summaryTextarea.value = polishCounselingText(summaryTextarea.value, name, topic, target);
+    }
+
+    function triggerPolishEditModal() {
+      const name = document.getElementById('edit-name').value.trim() || "學生";
+      const topic = document.getElementById('edit-topic').value;
+      const target = document.getElementById('edit-target').value;
+      const editSummaryTextarea = document.getElementById('edit-summary');
+
+      editSummaryTextarea.value = polishCounselingText(editSummaryTextarea.value, name, topic, target);
+    }
+
+    function polishCounselingText(rawText, name, topic, target) {
+      let cleanInput = (rawText || "").trim();
+      let sname = name || "學生";
+      let topicStr = topic || "例行晤談";
+
+      if (!cleanInput) {
+        if (topicStr === "課業學習") {
+          return `關心與輔導【${sname}】課業學習與作業狀況，導師進行個別指導，學生表示配合改善。`;
+        } else if (topicStr === "常規問題") {
+          return `關心【${sname}】生活常規與品德表現，導師進行指導告誡，學生虛心接受並承諾改進。`;
+        } else if (topicStr === "人際關係") {
+          return `輔導【${sname}】同儕溝通與相處問題，引導理性表達，學生同意和睦相處。`;
+        } else if (topicStr === "學生請假") {
+          return `確認【${sname}】請假事宜與出勤狀況，導師給予關懷並叮嚀課業補繳進度。`;
+        } else if (topicStr === "服裝儀容") {
+          return `提醒【${sname}】遵守學校服儀規範，學生虛心接受導師指導並隨即配合整頓。`;
+        } else {
+          return `與【${sname}】進行${topicStr}個別晤談，導師進行關懷指導，輔導互動良好。`;
+        }
+      }
+
+      let input_text = cleanInput;
+      input_text = input_text.replace(/^與【.*?】共同參與.*?[。；;\s]*/, '');
+
+      if (input_text.length <= 90) {
+        let res = input_text;
+        if (!res.includes(sname) && !res.startsWith("【")) {
+          res = `【${sname}】${res}`;
+        }
+        if (!/[。！？.!?]$/.test(res)) {
+          res += "。";
+        }
+        return res;
+      }
+
+      let event = "";
+      if (/講髒話|髒話|不當言語|粗口|罵人/.test(input_text)) {
+        event = "學生在校使用不當言語，學務處依規擬記警告處分。";
+      } else if (/打架|爭執|口角|吵架|衝突/.test(input_text)) {
+        event = "學生發生同儕爭執與口角衝突事宜。";
+      } else if (/作業|缺交|未交|成績|考不及格/.test(input_text)) {
+        event = "學生課業學習與作業繳交狀況不佳。";
+      } else if (/遲到|曠課|請假|出勤|作息/.test(input_text)) {
+        event = "確認學生出勤與課務相關事宜。";
+      } else {
+        let firstSent = input_text.split(/[。！？\n]/)[0];
+        if (firstSent.length > 40) firstSent = firstSent.substring(0, 40) + "…";
+        event = `${firstSent}。`;
+      }
+
+      let action = "";
+      if (/家長|父母|電聯|電話|說服/.test(input_text)) {
+        if (/同意|配合|懲處|處分|警告/.test(input_text)) {
+          action = "導師告誡學生並聯絡家長溝通說明，家長同意配合學校處分與督導。";
+        } else {
+          action = "導師進行叮嚀告誡並聯絡家長溝通說明狀況。";
+        }
+      } else {
+        action = "導師進行個別叮嚀與告誡輔導。";
+      }
+
+      let followup = "後續持續觀察學生狀況與生活常規。";
+
+      return `【${sname}】${event}${action}${followup}`;
+    }
+
+    function deleteRecord(monthKey, recordIndex) {
+      if (confirm('確定要刪除這筆紀錄嗎？')) {
+        recordsData[monthKey].splice(recordIndex, 1);
+        recordsData[monthKey].forEach((r, idx) => {
+          r.no = String(idx + 1);
+        });
+        renderPages();
+      }
+    }
+
+    function filterMonthView() {
+      renderPages();
+    }
+
+    
+    function exportToExcel() {
+      const selectEl = document.getElementById('month-select');
+      const currentMonth = selectEl ? selectEl.value : 'ALL';
+      let records = [];
+
+      if (currentMonth === 'ALL') {
+        Object.keys(recordsData).sort().forEach(m => {
+          (recordsData[m] || []).forEach(r => {
+            records.push({ 月份檔名: m, ...r });
+          });
+        });
+      } else {
+        records = (recordsData[currentMonth] || []).map(r => ({ 月份檔名: currentMonth, ...r }));
+      }
+
+      if (records.length === 0) {
+        alert('目前沒有紀錄可供匯出！');
+        return;
+      }
+
+      const exportData = records.map((r, idx) => {
+        let cleanTarget = r.target || '';
+        if (typeof formatTargetMethodLine === 'function') {
+          cleanTarget = formatTargetMethodLine(r.target).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        }
+
+        return {
+          "序號": r.no || (idx + 1),
+          "月份": r.月份檔名 || currentMonth,
+          "日期與時間": r.datetime_display || ((r.date || '') + ' ' + (r.time || '')),
+          "座號": r.seat || '',
+          "學生姓名": r.name || '',
+          "輔導主題": r.topic || '',
+          "面談與聯絡方式": cleanTarget,
+          "輔導紀錄與具體事實細節": r.summary || ''
+        };
+      });
+
+      if (typeof XLSX === 'undefined') {
+        alert('Excel 匯出元件載入中，請稍後再試一次！');
+        return;
+      }
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      ws['!cols'] = [
+        { wch: 8 },  // 序號
+        { wch: 12 }, // 月份
+        { wch: 16 }, // 日期與時間
+        { wch: 8 },  // 座號
+        { wch: 12 }, // 學生姓名
+        { wch: 14 }, // 輔導主題
+        { wch: 30 }, // 面談與聯絡方式
+        { wch: 70 }  // 輔導紀錄
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "班級經營紀錄");
+
+      const fileName = `班級經營與輔導紀錄本_${currentMonth === 'ALL' ? '全部月份' : currentMonth}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function exportToWord() {
+      const selectEl = document.getElementById('month-select');
+      const currentMonth = selectEl ? selectEl.value : 'ALL';
+      let recordsByMonth = {};
+
+      if (currentMonth === 'ALL') {
+        recordsByMonth = recordsData;
+      } else {
+        if (recordsData[currentMonth]) {
+          recordsByMonth[currentMonth] = recordsData[currentMonth];
+        }
+      }
+
+      let totalCount = 0;
+      Object.values(recordsByMonth).forEach(arr => totalCount += arr.length);
+
+      if (totalCount === 0) {
+        alert('目前沒有紀錄可供匯出！');
+        return;
+      }
+
+      let htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>班級經營紀錄本</title>
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>100</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            @page {
+              size: 210mm 297mm;
+              margin: 15mm 15mm 15mm 15mm;
+            }
+            body {
+              font-family: "PMingLiU", "MingLiU", "DFKai-SB", "BiauKai", serif;
+              font-size: 11pt;
+            }
+            h2 {
+              text-align: center;
+              font-size: 16pt;
+              font-weight: bold;
+              margin-bottom: 4px;
+            }
+            p.subtitle {
+              text-align: center;
+              font-size: 11pt;
+              margin-bottom: 12px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+              table-layout: fixed;
+            }
+            th, td {
+              border: 1px solid #000000;
+              padding: 6px 6px;
+              font-size: 10pt;
+              vertical-align: middle;
+              word-wrap: break-word;
+            }
+            th {
+              background-color: #f2f2f2;
+              font-weight: bold;
+              text-align: center;
+            }
+            .page-break {
+              page-break-after: always;
+            }
+          </style>
+        </head>
+        <body>
+      `;
+
+      const sortedMonths = Object.keys(recordsByMonth).sort();
+
+      sortedMonths.forEach((mKey, monthIdx) => {
+        const list = recordsByMonth[mKey];
+        if (!list || list.length === 0) return;
+
+        htmlContent += `
+          <h2>六和高級中學國中部 - 班級經營紀錄本</h2>
+          <p class="subtitle">紀錄月份：<b>${mKey}</b> （共 ${list.length} 筆紀錄）</p>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 6%;">序號</th>
+                <th style="width: 12%;">日期/時間</th>
+                <th style="width: 8%;">座號</th>
+                <th style="width: 12%;">姓名</th>
+                <th style="width: 28%;">輔導/連絡家長對象與方式</th>
+                <th style="width: 34%;">輔導與紀錄內涵簡述</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        list.forEach((r, idx) => {
+          let targetText = formatTargetMethodLine(r.target);
+
+          htmlContent += `
+            <tr>
+              <td style="text-align: center;">${r.no || (idx + 1)}</td>
+              <td style="text-align: center;">${r.datetime_display || ((r.date || '') + ' ' + (r.time || ''))}</td>
+              <td style="text-align: center;">${r.seat || ''}</td>
+              <td style="text-align: center;"><b>${r.name || ''}</b></td>
+              <td>${targetText}</td>
+              <td>${r.summary || ''}</td>
+            </tr>
+          `;
+        });
+
+        htmlContent += `
+            </tbody>
+          </table>
+        `;
+
+        if (monthIdx < sortedMonths.length - 1) {
+          htmlContent += `<div class="page-break"></div>`;
+        }
+      });
+
+      htmlContent += `
+        
+    <!-- Google Sheet Sync Modal -->
+    <div id="gsheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="font-bold text-purple-900 text-base flex items-center gap-2">
+            📊 Google 試算表「學生概況/作業缺交及家長紀錄」即時同步
+          </h3>
+          <button onclick="closeGoogleSheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <!-- Sync Option 1: URL / Sheet ID -->
+        <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 space-y-2">
+          <label class="block text-xs font-bold text-purple-900">🔗 方法一：填入 Google 試算表網址 (自動網路同步/發布檔)</label>
+          <div class="flex gap-2">
+            <input type="text" id="gsheet-url-input" value="https://script.google.com/macros/s/AKfycbxEqZ-1h53kh-TplHwmWf4D58VGTkfkBDmMl29npVDsTuKRAcwMwjr3H8Ytd4SkPL1H/exec" class="w-full text-xs border border-purple-300 rounded p-2 bg-white font-mono" placeholder="請貼入 Google 試算表網址...">
+            <button id="btn-sync-gas" onclick="syncFromGoogleSheetUrl(event)" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow shrink-0 flex items-center gap-1">
+              ⚡ 即時線上連動
+            </button>
+          </div>
+          <p class="text-[11px] text-purple-700">💡 提示：請確定 Google 試算表設為「知道連結者皆可檢視」或「檔案 ➔ 分享 ➔ 發布到網路」。</p>
+        </div>
+
+        <!-- Sync Option 2: Quick Copy & Paste -->
+        <div class="bg-amber-50 p-4 rounded-lg border border-amber-200 space-y-2">
+          <label class="block text-xs font-bold text-amber-900">📋 方法二：直接複製貼上 Google 試算表表格內容 (最快速！免設權限)</label>
+          <textarea id="gsheet-paste-area" rows="4" class="w-full text-xs border border-amber-300 rounded p-2 bg-white font-mono leading-relaxed" placeholder="請在 Google 試算表中選取「學生概況」或「作業缺交與家長紀錄」之資料列（包含：日期、座號姓名、聯絡方式、主題、輔導內容），複製後直接貼於此處..."></textarea>
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] text-amber-700">支援欄位順序：日期 ➔ 座號姓名 ➔ 聯絡方式 ➔ 輔導主題 ➔ 輔導紀錄事實細節</span>
+            <button onclick="importPastedGSheetData()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow flex items-center gap-1">
+              📥 一鍵解析並同步至紀錄本
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 3: Apps Script Instructions -->
+        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs text-gray-700 space-y-1">
+          <p class="font-bold text-gray-800">💡 說明：連動登錄原則</p>
+          <p>1. 本系統解析後會自動依據「月份（如 2026年08月、09月）」分類歸檔，並自動累加序號（no: 1, 2, 3...）。</p>
+          <p>2. 解析成功後資料將同步登錄於網頁，並自動儲存至您的瀏覽器紀錄，可隨時導出成 A4、Word 或 Excel。</p>
+        </div>
+      </div>
+    </div>
+
+</body>
+        </html>
+      `;
+
+      const blob = new Blob(['\ufeff', htmlContent], {
+        type: 'application/msword;charset=utf-8'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `班級經營與輔導紀錄本_${currentMonth === 'ALL' ? '全部月份' : currentMonth}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    
+    
+    function openGoogleSheetModal() {
+      document.getElementById('gsheet-modal').classList.remove('hidden');
+    }
+
+    function closeGoogleSheetModal() {
+      document.getElementById('gsheet-modal').classList.add('hidden');
+    }
+
+    function syncFromGoogleSheetUrl(evt) {
+      const defaultGasUrl = 'https://script.google.com/macros/s/AKfycbxEqZ-1h53kh-TplHwmWf4D58VGTkfkBDmMl29npVDsTuKRAcwMwjr3H8Ytd4SkPL1H/exec';
+      const inputEl = document.getElementById('gsheet-url-input');
+      const inputUrl = (inputEl ? inputEl.value.trim() : '') || defaultGasUrl;
+
+      const btn = evt && evt.target ? evt.target : document.getElementById('btn-sync-gas');
+      const oldText = btn ? btn.innerText : '⚡ 即時線上連動';
+      if (btn) btn.innerText = '⏳ 正在連動讀取中...';
+
+      fetch(inputUrl, { redirect: 'follow' })
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP status ' + res.status);
+          return res.text();
+        })
+        .then(text => {
+          let parsedJson = null;
+          try {
+            parsedJson = JSON.parse(text);
+          } catch (e) {
+            // Text is CSV or HTML or wrapped
+          }
+
+          if (parsedJson && (Array.isArray(parsedJson) || typeof parsedJson === 'object')) {
+            parseAndImportGASJson(parsedJson);
+          } else {
+            parseAndImportCSVText(text);
+          }
+        })
+        .catch(err => {
+          console.error('GAS Fetch Error:', err);
+          alert('連動讀取時遇到權限或存取問題。請確認 Google Apps Script 設定「誰可以存取」為「所有人 (Anyone)」，或使用方法二（複製貼上）即可一鍵同步！');
+        })
+        .finally(() => {
+          if (btn) btn.innerText = oldText;
+        });
+    }
+
+    function parseAndImportGASJson(jsonData) {
+      let recordsList = [];
+
+      if (Array.isArray(jsonData)) {
+        if (jsonData.length > 0 && Array.isArray(jsonData[0])) {
+          const headers = jsonData[0].map(h => String(h).trim());
+          for (let i = 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length < 3) continue;
+            let item = {};
+            row.forEach((cell, colIdx) => {
+              const h = headers[colIdx] || `col_${colIdx}`;
+              item[h] = String(cell).trim();
+            });
+            recordsList.push(item);
+          }
+        } else {
+          recordsList = jsonData;
+        }
+      } else if (typeof jsonData === 'object' && jsonData !== null) {
+        Object.keys(jsonData).forEach(key => {
+          const val = jsonData[key];
+          if (Array.isArray(val)) {
+            val.forEach(v => {
+              if (typeof v === 'object' && v !== null) {
+                recordsList.push(v);
+              }
+            });
+          }
+        });
+      }
+
+      if (recordsList.length === 0) {
+        alert('未搜尋到可連動登錄的紀錄資料！');
+        return;
+      }
+
+      let addedCount = 0;
+
+      recordsList.forEach(item => {
+        let dateStr = item['日期'] || item['date'] || item['Date'] || item['時間'] || '';
+        let seatName = item['座號姓名'] || item['座號/姓名'] || item['學生姓名'] || item['姓名'] || item['name'] || '';
+        let seatNum = item['座號'] || item['seat'] || '';
+        let targetStr = item['聯絡方式'] || item['晤談方式'] || item['面談方式'] || item['target'] || '電聯家長';
+        let topicStr = item['主題'] || item['晤談主題'] || item['輔導主題'] || item['topic'] || '例行晤談';
+        let summaryStr = item['輔導內容'] || item['輔導內容（最多100字）'] || item['輔導紀錄'] || item['紀錄與事由細節'] || item['summary'] || '';
+
+        let seat = seatNum, name = seatName;
+        if (!seat && seatName) {
+          const snMatch = String(seatName).match(/(\d+)\s*(.*)/);
+          if (snMatch) {
+            seat = snMatch[1].padStart(2, '0');
+            name = snMatch[2].trim() || seatName;
+          }
+        }
+        if (seat) seat = String(seat).padStart(2, '0');
+        if (!name && seatName) name = String(seatName);
+
+        if (!dateStr || (!seat && !name)) return;
+
+        let formattedDate = String(dateStr).trim();
+        let monthKey = '2026年09月';
+        let datetimeDisplay = formattedDate;
+
+        const dateParts = formattedDate.replace(/\//g, '-').split('-');
+        if (dateParts.length >= 3) {
+          const y = dateParts[0];
+          const m = dateParts[1].padStart(2, '0');
+          const d = dateParts[2].padStart(2, '0');
+          formattedDate = `${y}-${m}-${d}`;
+          monthKey = `${y}年${m}月`;
+          datetimeDisplay = `${parseInt(m, 10)}/${parseInt(d, 10)} 10:10`;
+        }
+
+        let mappedTarget = targetStr;
+        if (targetStr.includes('聯絡家長') || targetStr.includes('電聯家長')) {
+          if (targetStr.includes('面談') || targetStr.includes('學生')) mappedTarget = '面談(學生),電聯家長';
+          else mappedTarget = '電聯家長';
+        } else if (targetStr.includes('面談')) {
+          mappedTarget = '面談(學生)';
+        }
+
+        if (!recordsData[monthKey]) {
+          recordsData[monthKey] = [];
+        }
+
+        const recId = `rec-gas-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+        const newRecord = {
+          id: recId,
+          no: String(recordsData[monthKey].length + 1),
+          date: formattedDate,
+          time: '10:10',
+          datetime_display: datetimeDisplay,
+          seat: seat || '00',
+          name: name || '學生',
+          target: mappedTarget,
+          topic: topicStr,
+          summary: summaryStr
+        };
+
+        recordsData[monthKey].push(newRecord);
+        addedCount++;
+      });
+
+      if (addedCount > 0) {
+        Object.keys(recordsData).forEach(m => {
+          recordsData[m].forEach((r, i) => r.no = String(i + 1));
+        });
+
+        saveRecordsToLocalStorage();
+        alert(`✅ 已成功從 Apps Script 自動擷取並登錄 ${addedCount} 筆學生概況與缺交家長紀錄！已自動歸檔與排版。`);
+        closeGoogleSheetModal();
+        renderPages();
+      } else {
+        alert('無法從 Apps Script 解析出有效紀錄，請確認資料格式！');
+      }
+    }
+
+    function parseAndImportCSVText(rawText) {
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      let addedCount = 0;
+
+      lines.forEach(line => {
+        let parts = line.split(/\t|,/);
+        // Clean up quotes if CSV format
+        parts = parts.map(p => p.replace(/^["']|["']$/g, '').trim());
+
+        // Skip header lines
+        if (parts.length < 3 || parts[0].includes('日期') || parts[1].includes('座號')) return;
+
+        let dateStr = '', seatName = '', targetStr = '', topicStr = '', summaryStr = '';
+
+        if (parts.length >= 6 && /^\d+$/.test(parts[0])) {
+          // Format with seq no at pos 0: [seq, date, seatName, target, topic, summary]
+          dateStr = parts[1];
+          seatName = parts[2];
+          targetStr = parts[3];
+          topicStr = parts[4];
+          summaryStr = parts[5];
+        } else if (parts.length >= 5) {
+          // Format: [date, seatName, target, topic, summary]
+          dateStr = parts[0];
+          seatName = parts[1];
+          targetStr = parts[2];
+          topicStr = parts[3];
+          summaryStr = parts[4];
+        } else if (parts.length >= 4) {
+          dateStr = parts[0];
+          seatName = parts[1];
+          targetStr = parts[2];
+          summaryStr = parts[3];
+          topicStr = '例行晤談';
+        } else {
+          return;
+        }
+
+        // Extract seat & name
+        let seat = seatName, name = seatName;
+        const snMatch = seatName.match(/(\d+)\s*(.*)/);
+        if (snMatch) {
+          seat = snMatch[1].padStart(2, '0');
+          name = snMatch[2].trim() || seatName;
+        }
+
+        // Format Date & Month Key
+        let formattedDate = dateStr;
+        let monthKey = '2026年09月';
+        let datetimeDisplay = dateStr;
+
+        const dateParts = dateStr.replace(/\//g, '-').split('-');
+        if (dateParts.length >= 3) {
+          const y = dateParts[0];
+          const m = dateParts[1].padStart(2, '0');
+          const d = dateParts[2].padStart(2, '0');
+          formattedDate = `${y}-${m}-${d}`;
+          monthKey = `${y}年${m}月`;
+          datetimeDisplay = `${parseInt(m, 10)}/${parseInt(d, 10)} 10:10`;
+        }
+
+        // Map target
+        let mappedTarget = targetStr;
+        if (targetStr.includes('聯絡家長') || targetStr.includes('電聯家長')) {
+          if (targetStr.includes('面談') || targetStr.includes('學生')) mappedTarget = '面談(學生),電聯家長';
+          else mappedTarget = '電聯家長';
+        } else if (targetStr.includes('面談')) {
+          mappedTarget = '面談(學生)';
+        }
+
+        if (!recordsData[monthKey]) {
+          recordsData[monthKey] = [];
+        }
+
+        // Avoid duplicate ID
+        const recId = `rec-gsheet-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+        const newRecord = {
+          id: recId,
+          no: String(recordsData[monthKey].length + 1),
+          date: formattedDate,
+          time: '10:10',
+          datetime_display: datetimeDisplay,
+          seat: seat,
+          name: name,
+          target: mappedTarget,
+          topic: topicStr || '例行晤談',
+          summary: summaryStr
+        };
+
+        recordsData[monthKey].push(newRecord);
+        addedCount++;
+      });
+
+      if (addedCount > 0) {
+        // Re-index sequence numbers
+        Object.keys(recordsData).forEach(m => {
+          recordsData[m].forEach((r, i) => r.no = String(i + 1));
+        });
+
+        saveRecordsToLocalStorage();
+        alert(`✅ 成功連動登錄 ${addedCount} 筆學生概況與作業/家長紀錄！已自動歸檔與排版。`);
+        closeGoogleSheetModal();
+        renderPages();
+      } else {
+        alert('未能識別出有效的紀錄，請檢查貼入或連動內容欄位格式！');
+      }
+    }
+
+    function saveRecordsToLocalStorage() {
+      try {
+        localStorage.setItem('class_management_records_data', JSON.stringify(recordsData));
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
+    }
+
+    function loadRecordsFromLocalStorage() {
+      try {
+        const saved = localStorage.getItem('class_management_records_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+            recordsData = parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('LocalStorage load failed:', e);
+      }
+    }
+
+    function renderPages() {
+      const container = document.getElementById('pages-container');
+      container.innerHTML = '';
+
+      const filterVal = document.getElementById('view-month-filter') ? document.getElementById('view-month-filter').value : 'ALL';
+
+      Object.keys(recordsData).forEach(month => {
+        if (filterVal !== 'ALL' && filterVal !== month) {
+          return;
+        }
+
+        const recs = recordsData[month];
+        const pageSize = 9; // Strictly max 9 records per A4 page
+        const totalPages = Math.max(1, Math.ceil(recs.length / pageSize));
+
+        // Format Month Header like "9月份班級紀錄"
+        const monthNumMatch = month.match(/(\d+)月/);
+        const monthNumStr = monthNumMatch ? parseInt(monthNumMatch[1], 10) + '月份' : month;
+
+        for (let p = 0; p < totalPages; p++) {
+          const pageRecs = recs.slice(p * pageSize, (p + 1) * pageSize);
+          
+          const pageDiv = document.createElement('div');
+          pageDiv.className = 'a4-page print-page border border-gray-400';
+          
+          let rowsHtml = '';
+          pageRecs.forEach((r, idxInPage) => {
+            const globalIndex = p * pageSize + idxInPage;
+            
+            // Generate exact checkboxes matching user photo:
+            // Line 1: ☐面談(☐學生 ☐家長)  ☐電聯家長  ☐家訪  ☐其他：
+            const targetMethodLine = formatTargetMethodLine(r.target);
+
+            // Line 2: 晤談主題：☐例行晤談  ☐常規問題  ☐人際關係  ☐課業學習
+            //                  ☐學生請假  ☐服裝儀容  ☐其他_______________
+            const allTopicNames = ["例行晤談", "常規問題", "人際關係", "課業學習", "學生請假", "服裝儀容", "其他"];
+            const topicsLine = allTopicNames.map(tp => `<span class="inline-block mr-2">${tp === r.topic ? '☑' : '☐'}${tp}</span>`).join('');
+
+            const isNew = r.id === lastAddedRowId;
+            const rowIdAttr = r.id ? `id="${r.id}"` : '';
+
+            rowsHtml += `
+              <tr ${rowIdAttr} style="height: 27mm;" class="${isNew ? 'row-newly-added font-semibold' : ''}">
+                <!-- Col 1: 序號 -->
+                <td class="text-center font-mono font-bold text-sm">
+                  ${r.no}
+                  <div class="no-print mt-1 space-x-1"><button onclick="openEditModal('${month}', ${globalIndex})" class="px-1 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-[10px] font-bold" title="修改此筆紀錄">✏️修改</button><button onclick="deleteRecord('${month}', ${globalIndex})" class="px-1 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 rounded text-[10px] font-bold" title="刪除此筆紀錄">🗑️刪除</button></div>
+                </td>
+                <!-- Col 2: 學生姓名 -->
+                <td class="text-center font-bold text-sm text-gray-900 editable-cell" contenteditable="true">${r.name}</td>
+                <!-- Col 3: 時間 -->
+                <td class="text-center font-mono text-xs editable-cell" contenteditable="true">${r.datetime_display || r.date + ' ' + r.time}</td>
+                <!-- Col 4: 晤談方式暨聯絡摘要 (100% 紙本樣式結構) -->
+                <td class="text-xs p-2 text-left leading-relaxed">
+                  <!-- Row 1: 聯絡方式與面談對象 -->
+                  <div class="border-b border-gray-400 pb-1 mb-1 font-mono text-[11px]">
+                    ${targetMethodLine}
+                  </div>
+                  <!-- Row 2: 晤談主題 -->
+                  <div class="border-b border-gray-400 pb-1 mb-1 text-[11px]">
+                    <span class="font-bold">晤談主題：</span>${topicsLine}
+                  </div>
+                  <!-- Row 3: 晤談內容 -->
+                  <div class="editable-cell pt-0.5 text-[11px]" contenteditable="true" title="點擊線上編修內容">
+                    <span class="font-bold">晤談內容：</span>${r.summary}
+                  </div>
+                </td>
+              </tr>
+            `;
+          });
+
+          pageDiv.innerHTML = `
+            <!-- Top Header matching user sample photo -->
+            <div class="text-center mb-3">
+              <h1 class="text-2xl font-bold tracking-wider text-black border-b-2 border-black pb-1 inline-block px-8">${monthNumStr}班級紀錄</h1>
+              <div class="no-print text-xs text-gray-500 mt-1">學校：${config.school_name} | 班級：${config.grade_class} | 導師：${config.teacher_name} | 頁次：${p+1} / ${totalPages}</div>
+            </div>
+
+            <!-- Main Table matching user sample photo -->
+            <table class="border-2 border-black">
+              <thead>
+                <tr class="border-b-2 border-black">
+                  <th style="width: 8%;" class="text-center">序號</th>
+                  <th style="width: 14%;" class="text-center">學生姓名</th>
+                  <th style="width: 13%;" class="text-center">時間</th>
+                  <th style="width: 65%;" class="text-center">晤談方式暨聯絡摘要</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <div class="mt-2 pt-1 text-[10px] text-gray-500 flex justify-between">
+              <span>註：本表排版100%對齊學校標準紙本欄位樣式，單頁容量極限 9 筆（A4 直印）。內容可點擊線上編修。</span>
+              <span>導師簽章：__________________</span>
+            </div>
+          `;
+
+          container.appendChild(pageDiv);
+        }
+      });
+    }
+
+    // Initial render
+    renderPages();
+  </script>
+
+    <!-- Google Sheet Sync Modal -->
+    <div id="gsheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="font-bold text-purple-900 text-base flex items-center gap-2">
+            📊 Google 試算表「學生概況/作業缺交及家長紀錄」即時同步
+          </h3>
+          <button onclick="closeGoogleSheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <!-- Sync Option 1: URL / Sheet ID -->
+        <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 space-y-2">
+          <label class="block text-xs font-bold text-purple-900">🔗 方法一：填入 Google 試算表網址 (自動網路同步/發布檔)</label>
+          <div class="flex gap-2">
+            <input type="text" id="gsheet-url-input" value="https://script.google.com/macros/s/AKfycbxEqZ-1h53kh-TplHwmWf4D58VGTkfkBDmMl29npVDsTuKRAcwMwjr3H8Ytd4SkPL1H/exec" class="w-full text-xs border border-purple-300 rounded p-2 bg-white font-mono" placeholder="請貼入 Google 試算表網址...">
+            <button id="btn-sync-gas" onclick="syncFromGoogleSheetUrl(event)" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow shrink-0 flex items-center gap-1">
+              ⚡ 即時線上連動
+            </button>
+          </div>
+          <p class="text-[11px] text-purple-700">💡 提示：請確定 Google 試算表設為「知道連結者皆可檢視」或「檔案 ➔ 分享 ➔ 發布到網路」。</p>
+        </div>
+
+        <!-- Sync Option 2: Quick Copy & Paste -->
+        <div class="bg-amber-50 p-4 rounded-lg border border-amber-200 space-y-2">
+          <label class="block text-xs font-bold text-amber-900">📋 方法二：直接複製貼上 Google 試算表表格內容 (最快速！免設權限)</label>
+          <textarea id="gsheet-paste-area" rows="4" class="w-full text-xs border border-amber-300 rounded p-2 bg-white font-mono leading-relaxed" placeholder="請在 Google 試算表中選取「學生概況」或「作業缺交與家長紀錄」之資料列（包含：日期、座號姓名、聯絡方式、主題、輔導內容），複製後直接貼於此處..."></textarea>
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] text-amber-700">支援欄位順序：日期 ➔ 座號姓名 ➔ 聯絡方式 ➔ 輔導主題 ➔ 輔導紀錄事實細節</span>
+            <button onclick="importPastedGSheetData()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow flex items-center gap-1">
+              📥 一鍵解析並同步至紀錄本
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 3: Apps Script Instructions -->
+        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs text-gray-700 space-y-1">
+          <p class="font-bold text-gray-800">💡 說明：連動登錄原則</p>
+          <p>1. 本系統解析後會自動依據「月份（如 2026年08月、09月）」分類歸檔，並自動累加序號（no: 1, 2, 3...）。</p>
+          <p>2. 解析成功後資料將同步登錄於網頁，並自動儲存至您的瀏覽器紀錄，可隨時導出成 A4、Word 或 Excel。</p>
+        </div>
+      </div>
+    </div>
+
+</body>
+</html>
